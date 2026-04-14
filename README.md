@@ -83,7 +83,6 @@ By detecting visualization intent, the agent routes the command to the Visualiza
 
 ![Input Output 5](./Screenshot%202026-04-14%20at%206.51.10%E2%80%AFPM.png)
 
-![Input Output 6](./Screenshot%202026-04-14%20at%206.51.17%E2%80%AFPM.png)
 
 ---
 
@@ -91,7 +90,7 @@ By detecting visualization intent, the agent routes the command to the Visualiza
 
 As requested, the Apify Actor has been heavily utilized to test social retrieval workflows. The system automatically restricts the Actor to the Top 5 tickers to optimize CU spending.
 
-It is shown in the recording of the whole project execution attached in the email
+![Input Output 6](./Screenshot%202026-04-14%20at%206.51.17%E2%80%AFPM.png)
 
 ---
 
