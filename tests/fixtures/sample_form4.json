@@ -1,0 +1,93 @@
+[
+  {
+    "accessionNo": "0001234567-24-000001",
+    "filedAt": "2024-04-14T10:00:00-04:00",
+    "formType": "4",
+    "issuer": {
+      "name": "Apple Inc.",
+      "ticker": "AAPL"
+    },
+    "reportingOwner": {
+      "name": "Tim Cook",
+      "title": "CEO"
+    },
+    "nonDerivativeTable": {
+      "transactions": [
+        {
+          "transactionDate": "2024-04-12",
+          "securityTitle": "Common Stock",
+          "transactionCode": "S",
+          "acquiredDisposedCode": "D",
+          "shares": "1000",
+          "pricePerShare": "170.50",
+          "directOrIndirectOwnership": "D",
+          "sharesOwnedFollowingTransaction": "500000"
+        }
+      ]
+    }
+  },
+  {
+    "accessionNo": "0001234567-24-000002",
+    "filedAt": "2024-04-14T11:00:00-04:00",
+    "formType": "4",
+    "issuer": {
+      "name": "Tesla, Inc.",
+      "ticker": "TSLA"
+    },
+    "reportingOwner": {
+      "name": "Elon Musk",
+      "title": "CEO"
+    },
+    "nonDerivativeTable": {
+      "transactions": [
+        {
+          "transactionDate": "2024-04-12",
+          "securityTitle": "Common Stock",
+          "transactionCode": "P",
+          "acquiredDisposedCode": "A",
+          "shares": "5000",
+          "pricePerShare": "165.00",
+          "directOrIndirectOwnership": "D",
+          "sharesOwnedFollowingTransaction": "411000000"
+        },
+        {
+          "transactionDate": "2024-04-13",
+          "securityTitle": "Common Stock",
+          "transactionCode": "S",
+          "acquiredDisposedCode": "D",
+          "shares": "100",
+          "pricePerShare": "166.50",
+          "directOrIndirectOwnership": "D",
+          "sharesOwnedFollowingTransaction": "410999900"
+        }
+      ]
+    }
+  },
+  {
+    "accessionNo": "0001234567-24-000003",
+    "filedAt": "2024-04-14T11:05:00-04:00",
+    "formType": "4",
+    "issuer": {
+      "name": "Tesla, Inc.",
+      "ticker": "TSLA"
+    },
+    "reportingOwner": {
+      "name": "Tesla, Inc.",
+      "title": "Issuer"
+    },
+    "nonDerivativeTable": {
+      "transactions": [
+        {
+          "transactionDate": "2024-04-12",
+          "securityTitle": "Common Stock",
+          "transactionCode": "P",
+          "acquiredDisposedCode": "A",
+          "shares": "5000",
+          "pricePerShare": "165.00",
+          "directOrIndirectOwnership": "I",
+          "sharesOwnedFollowingTransaction": "411000000"
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1234567890",
+    "full_text": "$AAPL to the moon \ud83d\ude80",
+    "author": { "userName": "trader_bob" },
+    "createdAt": "2024-04-14T12:00:00Z",
+    "retweetCount": 10,
+    "likeCount": 150,
+    "replyCount": 5
+  },
+  {
+    "id": "1234567891",
+    "full_text": "Is TSLA overvalued?",
+    "author": { "userName": "bear_market_1" },
+    "createdAt": "2024-04-13T10:00:00Z",
+    "retweetCount": 0,
+    "likeCount": 5,
+    "replyCount": 1
+  }
+]

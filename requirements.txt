@@ -1,0 +1,14 @@
+sec-api
+apify-client
+lightrag-hku
+duckdb
+pandas
+matplotlib
+plotly
+httpx
+pydantic
+pydantic-settings
+python-dotenv
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp
