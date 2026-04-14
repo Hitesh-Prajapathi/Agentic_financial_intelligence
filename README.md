@@ -10,7 +10,7 @@ This project fulfills and exceeds all requirements outlined in the assessment:
 
 1. **Top Insider Trading Filter**: Automatically fetches all SEC Form 4 insider trading data from the last 24 hours, parses out the net dollar flow, and identifies the Top 5 most significant trades by value.
 2. **Social Sentiment Context (Apify)**: Dynamically triggers Apify's Twitter/X scraper (`apidojo/tweet-scraper`) to gather context on the correlated tickers for the last 7 days.
-3. **Optimized Chat Bot (LightRAG)**: Uses **LightRAG** (a graph-based RAG architecture) to chunk, index, and retrieve structured context. The chatbot answers strictly based on this RAG context or its local database context to prevent hallucinations.
+3. **Optimized Chat Bot (LightRAG)**: Uses **LightRAG** (a graph-based RAG architecture) to chunk, index, and retrieve structured context. The chatbot answers strictly based on this RAG context or its local database. context to prevent hallucinations.
 4. **Dynamic Chart Generation**: Detects user intent ("draw me a chart of the top trades") and completely bypasses the standard LLM response path to dynamically generate and serve native data visualizations (Matplotlib).
 5. **Closed Learning Loop**: Implements OpenTelemetry monitoring (`telemetry/otel_setup.py`) to trace agent logic, alongside a dedicated `learning_loop.py` skill that logs queries, measures confidence scores, and iteratively refines agent prompt contexts based on failure modalities.
 6. **Scale, Logging, Error Handling (Extra Points)**: The architecture is built with dependency injection, strict schema validation (via Pydantic equivalents in Prompts), graceful fallback states (e.g., loading Demo Data to bypass 24hr SEC API windows), and robust, noise-filtered Python `logging`. 
@@ -81,7 +81,6 @@ By detecting visualization intent, the agent routes the command to the Visualiza
 *Sample 4:*
 ![Input Output 4](./Screenshot%202026-04-14%20at%206.51.03%E2%80%AFPM.png)
 
-### 3. Pipeline Run
 ![Input Output 5](./Screenshot%202026-04-14%20at%206.51.10%E2%80%AFPM.png)
 
 ![Input Output 6](./Screenshot%202026-04-14%20at%206.51.17%E2%80%AFPM.png)
@@ -92,7 +91,7 @@ By detecting visualization intent, the agent routes the command to the Visualiza
 
 As requested, the Apify Actor has been heavily utilized to test social retrieval workflows. The system automatically restricts the Actor to the Top 5 tickers to optimize CU spending.
 
-![Apify Token Usage](./Screenshot%202026-04-14%20at%206.51.58%E2%80%AFPM.png)
+It is shown in the recording of the whole project execution attached in the email
 
 ---
 
