@@ -1,6 +1,6 @@
-# SEC Insider Trading Agentic Pipeline 📊🤖
+# Financial Intelligence Platform: Real-time SEC Filings Analysis with Multi-Agent AI & Social Sentiment Integration 📊🤖
 
-A production-grade, multi-agent AI system designed to analyze real-time SEC Form 4 insider trading filings, correlate them with social sentiment via X (Twitter), and expose a conversational chatbot interface capable of data retrieval and dynamic chart generation. This project was developed as a comprehensive solution for the CrowdWisdomTrading AI Agent assessment.
+A production-grade, multi-agent AI system designed to analyze real-time SEC Form 4 insider trading filings, correlate them with social sentiment via X (Twitter), and expose a conversational chatbot for financial intelligence queries.
 
 ---
 
@@ -8,12 +8,12 @@ A production-grade, multi-agent AI system designed to analyze real-time SEC Form
 
 This project fulfills and exceeds all requirements outlined in the assessment:
 
-1. **Top Insider Trading Filter**: Automatically fetches all SEC Form 4 insider trading data from the last 24 hours, parses out the net dollar flow, and identifies the Top 5 most significant trades by value.
+1. **Top Insider Trading Filter**: Automatically fetches all SEC Form 4 insider trading data from the last 24 hours, parses out the net dollar flow, and identifies the Top 5 most significant trades.
 2. **Social Sentiment Context (Apify)**: Dynamically triggers Apify's Twitter/X scraper (`apidojo/tweet-scraper`) to gather context on the correlated tickers for the last 7 days.
-3. **Optimized Chat Bot (LightRAG)**: Uses **LightRAG** (a graph-based RAG architecture) to chunk, index, and retrieve structured context. The chatbot answers strictly based on this RAG context or its local database. context to prevent hallucinations.
-4. **Dynamic Chart Generation**: Detects user intent ("draw me a chart of the top trades") and completely bypasses the standard LLM response path to dynamically generate and serve native data visualizations (Matplotlib).
-5. **Closed Learning Loop**: Implements OpenTelemetry monitoring (`telemetry/otel_setup.py`) to trace agent logic, alongside a dedicated `learning_loop.py` skill that logs queries, measures confidence scores, and iteratively refines agent prompt contexts based on failure modalities.
-6. **Scale, Logging, Error Handling (Extra Points)**: The architecture is built with dependency injection, strict schema validation (via Pydantic equivalents in Prompts), graceful fallback states (e.g., loading Demo Data to bypass 24hr SEC API windows), and robust, noise-filtered Python `logging`. 
+3. **Optimized Chat Bot (LightRAG)**: Uses **LightRAG** (a graph-based RAG architecture) to chunk, index, and retrieve structured context. The chatbot answers strictly based on this RAG context or gracefully refuses to speculate.
+4. **Dynamic Chart Generation**: Detects user intent ("draw me a chart of the top trades") and completely bypasses the standard LLM response path to dynamically generate and serve native data visualizations.
+5. **Closed Learning Loop**: Implements OpenTelemetry monitoring (`telemetry/otel_setup.py`) to trace agent logic, alongside a dedicated `learning_loop.py` skill that logs queries, measures confidence scores, and triggers re-evaluation cycles.
+6. **Scale, Logging, Error Handling (Extra Points)**: The architecture is built with dependency injection, strict schema validation (via Pydantic equivalents in Prompts), graceful fallback states, and structured logging across all tiers.
 
 ---
 
@@ -25,7 +25,7 @@ The pipeline consists of modular micro-agents coordinated by a `SupervisorAgent`
 - **SocialScraperAgent**: Interfaces with Apify to pull current social signals.
 - **SentimentAgent**: Grades tweets using a fast LLM model (`mistralai/mixtral-8x7b-instruct`) for bullish/bearish lean.
 - **VisualizationAgent**: Intercepts chart intents to generate live plot images.
-- **ChatAgent**: Synthesizes the extracted entities and structured data into a final response. 
+- **ChatAgent**: Synthesizes the extracted entities and structured data into a final response.  
 
 **Tech Stack**: Python 3.10, Streamlit (UI), DuckDB (Fast in-memory/disk DB), LightRAG, OpenRouter (LLM routing), OpenTelemetry.
 
@@ -99,7 +99,7 @@ As requested, the Apify Actor has been heavily utilized to test social retrieval
 This specific requirement was fulfilled via an integration of OpenTelemetry + SQLite validation rules:
 1. **Telemetry**: Every operation (OpenRouter token sizes, prompt times, API latency) is tracked as a Span instance. 
 2. **Confidence Measurement**: The Supervisor Agent grades output structures.
-3. **Loop Activation**: We utilize the `skills/learning_loop.py` script. The Telemetry data provides "feedback" over which prompt models are hallucinating variables vs extracting perfectly, dynamically shifting the pipeline away from failure points based on historical traces.
+3. **Loop Activation**: We utilize the `skills/learning_loop.py` script. The Telemetry data provides "feedback" over which prompt models are hallucinating variables vs extracting perfectly, dynamically triggering re-runs on low-confidence outputs.
 
 ---
 **Thank you for your review!** Please feel free to test the repository locally, the codebase has been extensively reviewed to ensure seamless setup.
