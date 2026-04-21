@@ -1,4 +1,4 @@
-# Financial Intelligence Platform: Real-time SEC Filings Analysis with Multi-Agent AI & Social Sentiment Integration 📊🤖
+# Agentic_financial_intelligence: Real-time SEC Filings Analysis with Multi-Agent AI & Social Sentiment Integration 📊🤖
 
 A production-grade, multi-agent AI system designed to analyze real-time SEC Form 4 insider trading filings, correlate them with social sentiment via X (Twitter), and expose a conversational chatbot for financial intelligence queries.
 
