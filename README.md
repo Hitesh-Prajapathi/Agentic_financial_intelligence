@@ -63,22 +63,10 @@ PYTHONPATH=. streamlit run app.py
 
 ## 📸 Sample Input & Output
 
-### 1. Conversational Queries & Sourced Answers
-The ChatAgent relies strictly on extracted data to build contextually rich answers.
-
 *Sample 1:*
-![Input Output 1](./Screenshot%202026-04-14%20at%206.50.19%E2%80%AFPM.png)
-
-*Sample 2:*
-![Input Output 2](./Screenshot%202026-04-14%20at%206.50.45%E2%80%AFPM.png)
-
-### 2. Dynamic Chart Generation
-By detecting visualization intent, the agent routes the command to the Visualization tier instead of hallucinating textual charts.
-
-*Sample 3:*
 ![Input Output 3](./Screenshot%202026-04-14%20at%206.50.54%E2%80%AFPM.png)
 
-*Sample 4:*
+*Sample 2:*
 ![Input Output 4](./Screenshot%202026-04-14%20at%206.51.03%E2%80%AFPM.png)
 
 ![Input Output 5](./Screenshot%202026-04-14%20at%206.51.10%E2%80%AFPM.png)
