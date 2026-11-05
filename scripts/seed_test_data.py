@@ -1,169 +1,94 @@
-import sys
+"""Demo data: entirely FICTIONAL companies and people, written to the separate demo database.
+
+It never touches the live database. Run directly (`python scripts/seed_test_data.py`) or via the UI's demo mode.
+"""
 import os
-import json
-from datetime import datetime, timezone, timedelta
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import sys
+from datetime import datetime, timedelta, timezone
 
-from tools.db_tool import db_tool
-from agents.symbolic_validation import validate_and_rank
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-def seed_db():
-    print("Initializing DB...")
-    db_tool.init_db()
-    
-    # Clear old demo data to prevent duplicates
-    db_tool.query("DELETE FROM tweet_sentiments")
-    db_tool.query("DELETE FROM tweets")
-    db_tool.query("DELETE FROM top_trades")
-    db_tool.query("DELETE FROM transactions")
-    db_tool.query("DELETE FROM filings")
-    print("  Cleared old data.")
-    
-    # 1. Create simulated filings
-    now = datetime.now(timezone.utc)
-    yesterday = now - timedelta(days=1)
-    
-    filings = [
-        {
-            "accession_number": "000123-26-001",
-            "filing_date": yesterday.isoformat(),
-            "issuer_name": "Tesla, Inc.",
-            "issuer_ticker": "TSLA",
-            "insider_name": "Elon Musk",
-            "insider_title": "CEO",
-            "form_type": "4",
-            "raw_json": json.dumps({"demo": True})
-        },
-        {
-            "accession_number": "000124-26-002",
-            "filing_date": yesterday.isoformat(),
-            "issuer_name": "Apple Inc.",
-            "issuer_ticker": "AAPL",
-            "insider_name": "Tim Cook",
-            "insider_title": "CEO",
-            "form_type": "4",
-            "raw_json": json.dumps({"demo": True})
-        },
-        {
-            "accession_number": "000125-26-003",
-            "filing_date": yesterday.isoformat(),
-            "issuer_name": "Microsoft Corporation",
-            "issuer_ticker": "MSFT",
-            "insider_name": "Satya Nadella",
-            "insider_title": "CEO",
-            "form_type": "4",
-            "raw_json": json.dumps({"demo": True})
-        }
-    ]
-    db_tool.insert_filings(filings)
+from agents.symbolic_validation import validate_and_rank  # noqa: E402
+from config.settings import settings  # noqa: E402
+from tools.db_tool import DBTool, get_db  # noqa: E402
 
-    # 2. Simulated trades
-    transactions = [
-        {
-            "accession_number": "000123-26-001",
-            "transaction_date": yesterday.strftime('%Y-%m-%d'),
-            "security_title": "Common Stock",
-            "transaction_type": "P", # Purchase
-            "shares": 10000,
-            "price_per_share": 180.50,
-            "ownership_nature": "D",
-            "post_transaction_shares": 500000
-        },
-        {
-            "accession_number": "000124-26-002",
-            "transaction_date": yesterday.strftime('%Y-%m-%d'),
-            "security_title": "Common Stock",
-            "transaction_type": "S", # Sell
-            "shares": 50000,
-            "price_per_share": 175.25,
-            "ownership_nature": "D",
-            "post_transaction_shares": 1000000
-        },
-        {
-            "accession_number": "000125-26-003",
-            "transaction_date": yesterday.strftime('%Y-%m-%d'),
-            "security_title": "Common Stock",
-            "transaction_type": "P", # Purchase
-            "shares": 5000,
-            "price_per_share": 420.00,
-            "ownership_nature": "D",
-            "post_transaction_shares": 80000
-        }
-    ]
-    db_tool.insert_transactions(transactions)
+# (ticker, company, [(insider, title, officer, director, code, shares, price, plan, post_shares)])
+SCENARIOS = [
+    ("ACME", "Acme Robotics Inc.", [
+        ("Dana Whitfield", "Chief Executive Officer", True, True, "S", 180_000, 52.40, True, 900_000),
+        ("Marcus Lee", "Chief Financial Officer", True, False, "S", 40_000, 52.10, True, 160_000)]),
+    ("GLBX", "Globex Energy Corp.", [
+        ("Priya Natarajan", "Director", False, True, "P", 60_000, 18.25, False, 140_000),
+        ("Tom Okafor", "Chief Operating Officer", True, False, "P", 25_000, 18.30, False, 75_000),
+        ("Helen Brandt", "Director", False, True, "P", 15_000, 18.10, False, 45_000)]),
+    ("NOVA", "Nova Biotherapeutics", [
+        ("Samuel Ortiz", "10% Owner", False, False, "S", 250_000, 7.80, False, 750_000)]),
+    ("QRTZ", "Quartz Semiconductor", [
+        ("Elena Voss", "Chief Executive Officer", True, True, "P", 12_000, 140.0, False, 40_000)]),
+    ("LUMI", "Lumiere Retail Group", [
+        ("Kenji Arai", "Chief Financial Officer", True, False, "S", 90_000, 31.0, False, 400_000),
+        ("Ruth Calloway", "Director", False, True, "S", 30_000, 30.8, True, 120_000)]),
+]
 
-    # 3. Use actual validation script to calculate rankings
-    # Reconstruct data like RankingAgent would
-    df_txns = db_tool.query_df("""
-        SELECT t.*, f.filing_date, f.issuer_ticker, f.insider_name 
-        FROM transactions t JOIN filings f ON t.accession_number = f.accession_number 
-    """)
-    ranked_df, checksum = validate_and_rank(df_txns.to_dict('records'))
-    
-    top_trades_payload = []
-    for t in ranked_df.to_dict('records'):
-        top_trades_payload.append({
-            'run_date': now.strftime('%Y-%m-%d'),
-            'rank': t['rank'],
-            'issuer_ticker': t['issuer_ticker'],
-            'insider_name': t.get('insider_name', 'Unknown'),
-            'net_dollar_value': t['net_dollar_value'],
-            'transaction_count': t['transaction_count'],
-            'dominant_direction': t['dominant_direction'],
-            'validation_checksum': checksum
-        })
-    db_tool.insert_top_trades(top_trades_payload)
-    
-    # 4. Insert some Tweets and Sentiments for these tickers
-    tweets = [
-        {
-            "tweet_id": "T1",
-            "ticker": "TSLA",
-            "text": "Tesla's AI day was huge, the stock is heavily undervalued right now. Buying more!",
-            "author_username": "bull_trader",
-            "created_at": yesterday.isoformat(),
-            "retweet_count": 50,
-            "like_count": 200,
-            "reply_count": 10,
-            "raw_json": json.dumps({"demo": True})
-        },
-        {
-            "tweet_id": "T2",
-            "ticker": "AAPL",
-            "text": "Apple sales look weak for this quarter. I think we will see a massive drop soon 📉",
-            "author_username": "bear_investor",
-            "created_at": yesterday.isoformat(),
-            "retweet_count": 20,
-            "like_count": 50,
-            "reply_count": 5,
-            "raw_json": json.dumps({"demo": True})
-        },
-        {
-            "tweet_id": "T3",
-            "ticker": "MSFT",
-            "text": "Microsoft is just releasing updates as usual. Looks like steady growth.",
-            "author_username": "neutral_nancy",
-            "created_at": yesterday.isoformat(),
-            "retweet_count": 5,
-            "like_count": 15,
-            "reply_count": 2,
-            "raw_json": json.dumps({"demo": True})
-        }
-    ]
-    db_tool.insert_tweets(tweets)
+TWEETS = {
+    "ACME": [("Founder selling again? Not a good sign for $ACME.", "bearish"), ("$ACME robotics demo was impressive, long term bullish", "bullish"),
+             ("Acme Robotics reports earnings Thursday", "neutral"), ("$ACME overvalued at these levels imo", "bearish")],
+    "GLBX": [("Three insiders buying $GLBX at once - that's conviction", "bullish"), ("$GLBX breakout incoming, adding more", "bullish"),
+             ("Globex Energy announces dividend date", "neutral"), ("Insider cluster buy at $GLBX, bullish", "bullish")],
+    "NOVA": [("$NOVA 10% holder dumping a quarter of his stake. Ouch.", "bearish"), ("Trial data for Nova Biotherapeutics next month", "neutral"),
+             ("$NOVA bearish until the overhang clears", "bearish")],
+    "QRTZ": [("CEO buying $QRTZ with her own money. Bullish.", "bullish"), ("$QRTZ supply chain looking stronger", "bullish"),
+             ("Quartz Semiconductor added to an index", "neutral")],
+    "LUMI": [("$LUMI CFO selling 90k shares, not great", "bearish"), ("Lumiere Retail same-store sales flat", "neutral"),
+             ("$LUMI looks weak into the holidays", "bearish")],
+}
 
-    sentiments = [
-        {"tweet_id": "T1", "ticker": "TSLA", "sentiment_label": "bullish", "confidence_score": 0.95},
-        {"tweet_id": "T2", "ticker": "AAPL", "sentiment_label": "bearish", "confidence_score": 0.88},
-        {"tweet_id": "T3", "ticker": "MSFT", "sentiment_label": "neutral", "confidence_score": 0.90}
-    ]
-    for s in sentiments:
-        db_tool.query(
-            "INSERT INTO tweet_sentiments (tweet_id, ticker, sentiment_label, confidence_score, classified_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT(tweet_id) DO NOTHING",
-            [s['tweet_id'], s['ticker'], s['sentiment_label'], s['confidence_score']]
-        )
-    
-    print("✅ Seeded DB with Demo Data. Refresh your Streamlit App!")
+
+def seed_demo(db: DBTool | None = None) -> dict:
+    db = db or get_db(settings.demo_db_path)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    for t in ("tweet_sentiments", "tweets", "sentiment_summary", "top_trades", "transactions", "filings",
+              "pipeline_runs", "scrape_log", "learned_examples"):
+        db.execute(f"DELETE FROM {t}")  # demo DB only
+
+    filings, txns, acc = [], [], 0
+    for ticker, company, rows in SCENARIOS:
+        for insider, title, officer, director, code, shares, price, plan, post in rows:
+            acc += 1
+            an = f"DEMO-{now:%y}-{acc:05d}"
+            filings.append(dict(accession_number=an, filing_date=now - timedelta(hours=acc * 2), issuer_name=company,
+                                issuer_ticker=ticker, issuer_cik=f"000{acc}", insider_name=insider, insider_title=title,
+                                is_officer=officer, is_director=director, is_ten_pct=title == "10% Owner", is_10b5_1=plan))
+            txns.append(dict(accession_number=an, row_idx=0, transaction_date=(now - timedelta(days=1)).date(),
+                             security_title="Common Stock", code=code, acquired_disposed="A" if code == "P" else "D",
+                             shares=float(shares), price_per_share=price, dollar_value=round(shares * price, 2),
+                             ownership_nature="D", post_transaction_shares=float(post)))
+    db.insert_filings(filings)
+    db.insert_transactions(txns)
+
+    df = db.query_df("""SELECT t.*, f.issuer_ticker, f.issuer_name, f.insider_name, f.insider_title, f.is_officer, f.is_director, f.is_10b5_1
+                        FROM transactions t JOIN filings f USING (accession_number)""")
+    ranked, checksum, _ = validate_and_rank(df, settings.top_n_trades, 0)
+    trades = ranked.drop(columns=["abs_net"]).to_dict("records")
+    for t in trades:
+        t["validation_checksum"] = checksum
+    run_id = "demo-run"
+    db.start_run(run_id, now - timedelta(minutes=2), "demo")
+    db.update_run(run_id, status="success", completed_at=now, filings_ingested=len(filings), trades_ranked=len(trades), stages="{}")
+    db.replace_top_trades(run_id, now.strftime("%Y-%m-%d"), trades)
+
+    tweets, sents, n = [], [], 0
+    for ticker, items in TWEETS.items():
+        for text, label in items:
+            n += 1
+            tweets.append(dict(tweet_id=f"demo-{n}", ticker=ticker, text=text, author_username=f"user{n}", author_followers=100 * n,
+                               created_at=now - timedelta(hours=n), retweet_count=n, like_count=3 * n, reply_count=n // 2))
+            sents.append(dict(tweet_id=f"demo-{n}", ticker=ticker, sentiment_label=label, confidence_score=0.85, model="demo"))
+    db.insert_tweets(tweets)
+    db.insert_sentiments(sents)
+    db.refresh_sentiment_summary()
+    return {"filings": len(filings), "trades": len(trades), "tweets": len(tweets)}
+
 
 if __name__ == "__main__":
-    seed_db()
+    print(seed_demo())

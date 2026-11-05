@@ -1,146 +1,119 @@
-"""
-Deterministic Integrity Checks — Governance & Safety Layer (Step 15)
+"""Governance gate: deterministic integrity checks run BEFORE ranked data is published.
 
-These functions are the ONLY gate between a successful pipeline run and the
-Learning Loop. A run that fails ANY check is quarantined and NEVER used for
-model improvement. Zero LLM calls allowed in this module.
+Each check recomputes something independently of the stage that produced it (a different SQL
+path, not the same pandas code), so a bug or corrupted input is caught instead of rubber-stamped.
+A run failing any check is quarantined: its ranking is never written and the Learning Loop never
+sees it. Zero LLM calls.
 """
-import hashlib
-import json
+from __future__ import annotations
+
 import logging
+import math
+from dataclasses import dataclass
+from datetime import datetime
+
 import pandas as pd
 
+from agents.symbolic_validation import compute_checksum
+
 logger = logging.getLogger(__name__)
+TOL = 1.0  # dollars; covers float rounding over many rows
 
 
-def check_filing_integrity(raw_filings: list[dict], db_filings: list[dict]) -> bool:
-    """
-    Verify that the number of DB-stored filings equals raw filings minus duplicates.
-    raw_filings  = list returned by SecApiTool.fetch_recent_filings()
-    db_filings   = list of filing dicts actually inserted (from SecDataAgent result)
-    Rule: len(db_filings) <= len(raw_filings)
-    """
-    if len(db_filings) > len(raw_filings):
-        logger.error(
-            f"[INTEGRITY] Filing count mismatch: DB has {len(db_filings)} "
-            f"but only {len(raw_filings)} raw filings received."
-        )
-        return False
-    logger.info(f"[INTEGRITY] Filing count OK: {len(db_filings)} stored / {len(raw_filings)} raw")
-    return True
+@dataclass
+class CheckResult:
+    name: str
+    passed: bool
+    detail: str = ""
 
 
-def check_transaction_integrity(raw_transactions: list[dict], ranked_df: pd.DataFrame, checksum: str) -> bool:
-    """
-    Verify that:
-    1. No transactions were silently dropped (row count matches expected tickers)
-    2. The stored checksum still matches a fresh re-computation on ranked_df
-    """
-    if ranked_df is None or ranked_df.empty:
-        if raw_transactions:
-            logger.error("[INTEGRITY] Transactions exist but ranked_df is empty — SVG may have failed.")
-            return False
-        logger.info("[INTEGRITY] Transaction integrity OK (no transactions).")
-        return True
-
-    # Re-compute checksum using the same columns as symbolic_validation.py
-    recomputed = _compute_svg_checksum(ranked_df)
-    if recomputed != checksum:
-        logger.error(
-            f"[INTEGRITY] Checksum MISMATCH. Stored: {checksum[:12]}... "
-            f"Recomputed: {recomputed[:12]}..."
-        )
-        return False
-
-    logger.info(f"[INTEGRITY] Transaction checksum verified: {checksum[:12]}...")
-    return True
+def check_ingest_reconciliation(db, accessions: list[str], expected_txns: int) -> CheckResult:
+    """Everything parsed in this run must be present in the database - nothing silently dropped."""
+    if not accessions:
+        return CheckResult("ingest_reconciliation", True, "no new filings this run")
+    ph = ",".join("?" * len(accessions))
+    n_f = db.query(f"SELECT COUNT(*) FROM filings WHERE accession_number IN ({ph})", accessions)[0][0]
+    n_t = db.query(f"SELECT COUNT(*) FROM transactions WHERE accession_number IN ({ph})", accessions)[0][0]
+    ok = n_f == len(accessions) and n_t == expected_txns
+    return CheckResult("ingest_reconciliation", ok,
+                       f"filings {n_f}/{len(accessions)}, transactions {n_t}/{expected_txns}")
 
 
-def check_ranking_integrity(ranked_df: pd.DataFrame) -> bool:
-    """
-    Verify that the ranked trades are correctly ordered by absolute net dollar value
-    (descending). This is a pure arithmetic check.
-    """
-    if ranked_df is None or ranked_df.empty:
-        logger.info("[INTEGRITY] Ranking integrity OK (empty, nothing to rank).")
-        return True
-
-    if "abs_net" not in ranked_df.columns:
-        logger.error("[INTEGRITY] 'abs_net' column missing from ranked_df.")
-        return False
-
-    values = ranked_df["abs_net"].tolist()
-    for i in range(len(values) - 1):
-        if values[i] < values[i + 1]:
-            logger.error(
-                f"[INTEGRITY] Ranking order violation at position {i}: "
-                f"{values[i]} < {values[i+1]}"
-            )
-            return False
-
-    logger.info("[INTEGRITY] Ranking order verified (monotonically non-increasing).")
-    return True
+def check_notional_reconciliation(db, window_start: datetime, stats: dict) -> CheckResult:
+    """Total open-market $ computed by SQL must equal what ranking accounted for (kept + dropped)."""
+    row = db.query(
+        """SELECT COUNT(*), COALESCE(SUM(t.shares * t.price_per_share), 0)
+           FROM transactions t JOIN filings f USING (accession_number)
+           WHERE f.filing_date >= ? AND t.code IN ('P','S')
+             AND t.shares > 0 AND t.price_per_share > 0
+             AND f.issuer_ticker IS NOT NULL AND f.issuer_ticker <> ''""", [window_start])[0]
+    sql_valid_rows, sql_total = int(row[0]), float(row[1])
+    accounted = stats["notional_valid"] + stats["notional_inconsistent"]
+    split_ok = abs(stats["notional_kept"] + stats["notional_dups"] - stats["notional_valid"]) <= TOL
+    total_ok = abs(sql_total - accounted) <= TOL
+    rows_ok = sql_valid_rows == (stats["rows_in"] - stats["dropped_invalid"])
+    return CheckResult("notional_reconciliation", split_ok and total_ok and rows_ok,
+                       f"sql=${sql_total:,.2f} vs ranked=${accounted:,.2f}; rows sql={sql_valid_rows} "
+                       f"vs pandas={stats['rows_in'] - stats['dropped_invalid']}")
 
 
-def verify_checksum(df: pd.DataFrame, stored_checksum: str) -> bool:
-    """
-    Recompute the SHA-256 checksum of a DataFrame and compare to a stored value.
-    Used to detect tampering between pipeline stages.
-    """
-    if df is None or df.empty:
-        return stored_checksum == "empty"
-
-    recomputed = _compute_svg_checksum(df)
-    match = recomputed == stored_checksum
-    if not match:
-        logger.error(
-            f"[INTEGRITY] verify_checksum FAILED. "
-            f"Stored: {stored_checksum[:12]}... Recomputed: {recomputed[:12]}..."
-        )
-    return match
+def check_ticker_bounds(db, window_start: datetime, ranked: pd.DataFrame) -> CheckResult:
+    """No ticker's buy/sell total may exceed what the raw table holds for that ticker."""
+    if ranked is None or ranked.empty:
+        return CheckResult("ticker_bounds", True, "nothing ranked")
+    bad = []
+    for r in ranked.itertuples():
+        row = db.query(
+            """SELECT COALESCE(SUM(CASE WHEN t.code='P' THEN t.shares*t.price_per_share END),0),
+                      COALESCE(SUM(CASE WHEN t.code='S' THEN t.shares*t.price_per_share END),0)
+               FROM transactions t JOIN filings f USING (accession_number)
+               WHERE f.filing_date >= ? AND f.issuer_ticker = ?""", [window_start, r.issuer_ticker])[0]
+        if r.buy_value > float(row[0]) + TOL or r.sell_value > float(row[1]) + TOL:
+            bad.append(r.issuer_ticker)
+    return CheckResult("ticker_bounds", not bad, f"violations: {bad}" if bad else f"{len(ranked)} tickers within bounds")
 
 
-def run_all_checks(
-    raw_filings: list,
-    db_filings: list,
-    raw_transactions: list,
-    ranked_df: pd.DataFrame,
-    checksum: str,
-) -> tuple[bool, list[str]]:
-    """
-    Run all integrity checks in sequence. Returns (passed: bool, failed_checks: list[str]).
-    If passed is False, the pipeline run must be quarantined.
-    """
-    failed = []
-
-    if not check_filing_integrity(raw_filings, db_filings):
-        failed.append("filing_count")
-
-    if not check_transaction_integrity(raw_transactions, ranked_df, checksum):
-        failed.append("transaction_checksum")
-
-    if not check_ranking_integrity(ranked_df):
-        failed.append("ranking_order")
-
-    passed = len(failed) == 0
-    return passed, failed
+def check_ranking_integrity(ranked: pd.DataFrame, top_n: int) -> CheckResult:
+    if ranked is None or ranked.empty:
+        return CheckResult("ranking_integrity", True, "empty ranking")
+    problems = []
+    if len(ranked) > top_n:
+        problems.append(f"{len(ranked)} rows > top_n={top_n}")
+    if list(ranked["rank"]) != list(range(1, len(ranked) + 1)):
+        problems.append("ranks not consecutive from 1")
+    vals = ranked["net_dollar_value"].abs().tolist()
+    if any(vals[i] < vals[i + 1] for i in range(len(vals) - 1)):
+        problems.append("not sorted by |net| descending")
+    for r in ranked.itertuples():
+        nums = (r.net_dollar_value, r.buy_value, r.sell_value)
+        if any(isinstance(x, float) and (math.isnan(x) or math.isinf(x)) for x in nums):
+            problems.append(f"{r.issuer_ticker}: NaN/inf")
+        if r.buy_value < 0 or r.sell_value < 0:
+            problems.append(f"{r.issuer_ticker}: negative gross value")
+        if abs((r.buy_value - r.sell_value) - r.net_dollar_value) > 0.02:
+            problems.append(f"{r.issuer_ticker}: net != buy - sell")
+        if (r.net_dollar_value > 0) != (r.dominant_direction == "BUY"):
+            problems.append(f"{r.issuer_ticker}: direction contradicts sign of net")
+    return CheckResult("ranking_integrity", not problems, "; ".join(problems) or "ordering, arithmetic, direction OK")
 
 
-# ── Private helpers ───────────────────────────────────────────────────────────
+def check_checksum(ranked: pd.DataFrame, checksum: str) -> CheckResult:
+    if ranked is None or ranked.empty:
+        return CheckResult("checksum", True, "empty ranking")
+    recomputed = compute_checksum(ranked.to_dict("records"))
+    return CheckResult("checksum", recomputed == checksum,
+                       "verified" if recomputed == checksum else f"stored {checksum[:10]}… ≠ recomputed {recomputed[:10]}…")
 
-def _compute_df_checksum(df: pd.DataFrame) -> str:
-    """Generic SHA-256 hash of a full DataFrame."""
-    records = json.loads(df.to_json(orient="records", date_format="iso"))
-    canonical = json.dumps(records, sort_keys=True)
-    return hashlib.sha256(canonical.encode()).hexdigest()
 
-
-def _compute_svg_checksum(df: pd.DataFrame) -> str:
-    """Re-compute the same checksum that symbolic_validation.validate_and_rank produces.
-    Uses only the 3 columns: rank, issuer_ticker, net_dollar_value."""
-    if df is None or df.empty:
-        return hashlib.sha256(b"empty").hexdigest()
-    cols = ['rank', 'issuer_ticker', 'net_dollar_value']
-    subset = df[cols] if all(c in df.columns for c in cols) else df
-    checksum_input = subset.to_json()
-    return hashlib.sha256(checksum_input.encode()).hexdigest()
+def run_all_checks(db, window_start: datetime, accessions: list[str], expected_txns: int,
+                   ranked: pd.DataFrame, checksum: str, stats: dict, top_n: int) -> tuple[bool, list[CheckResult]]:
+    results = [
+        check_ingest_reconciliation(db, accessions, expected_txns),
+        check_notional_reconciliation(db, window_start, stats),
+        check_ticker_bounds(db, window_start, ranked),
+        check_ranking_integrity(ranked, top_n),
+        check_checksum(ranked, checksum),
+    ]
+    for r in results:
+        (logger.info if r.passed else logger.error)("[INTEGRITY] %s: %s (%s)", r.name, "PASS" if r.passed else "FAIL", r.detail)
+    return all(r.passed for r in results), results

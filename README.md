@@ -1,93 +1,70 @@
-# Agentic_financial_intelligence: Real-time SEC Filings Analysis with Multi-Agent AI & Social Sentiment Integration 📊🤖
+# SEC Insider Trading Intelligence
 
-A production-grade, multi-agent AI system designed to analyze real-time SEC Form 4 insider trading filings, correlate them with social sentiment via X (Twitter), and expose a conversational chatbot for financial intelligence queries.
+Finds the most significant **insider trades** in the last 24 hours from SEC Form 4 filings, adds **social-media sentiment**
+for those tickers, and lets you question the results through a **grounded chat assistant** that cites its sources.
+Runs entirely on **free-tier** LLMs.
 
----
-
-## 🎯 Project Scope & Deliverables Achieved
-
-This project fulfills and exceeds all requirements outlined in the assessment:
-
-1. **Top Insider Trading Filter**: Automatically fetches all SEC Form 4 insider trading data from the last 24 hours, parses out the net dollar flow, and identifies the Top 5 most significant trades.
-2. **Social Sentiment Context (Apify)**: Dynamically triggers Apify's Twitter/X scraper (`apidojo/tweet-scraper`) to gather context on the correlated tickers for the last 7 days.
-3. **Optimized Chat Bot (LightRAG)**: Uses **LightRAG** (a graph-based RAG architecture) to chunk, index, and retrieve structured context. The chatbot answers strictly based on this RAG context or gracefully refuses to speculate.
-4. **Dynamic Chart Generation**: Detects user intent ("draw me a chart of the top trades") and completely bypasses the standard LLM response path to dynamically generate and serve native data visualizations.
-5. **Closed Learning Loop**: Implements OpenTelemetry monitoring (`telemetry/otel_setup.py`) to trace agent logic, alongside a dedicated `learning_loop.py` skill that logs queries, measures confidence scores, and triggers re-evaluation cycles.
-6. **Scale, Logging, Error Handling**: The architecture is built with dependency injection, strict schema validation (via Pydantic equivalents in Prompts), graceful fallback states, and structured logging across all tiers.
-
----
-
-## 🏛️ System Architecture
-
-The pipeline consists of modular micro-agents coordinated by a `SupervisorAgent`:
-
-- **RetrievalAgent**: Loads SEC filings and handles Graph RAG extraction.
-- **SocialScraperAgent**: Interfaces with Apify to pull current social signals.
-- **SentimentAgent**: Grades tweets using a fast LLM model (`mistralai/mixtral-8x7b-instruct`) for bullish/bearish lean.
-- **VisualizationAgent**: Intercepts chart intents to generate live plot images.
-- **ChatAgent**: Synthesizes the extracted entities and structured data into a final response.  
-
-**Tech Stack**: Python 3.10, Streamlit (UI), DuckDB (Fast in-memory/disk DB), LightRAG, OpenRouter (LLM routing), OpenTelemetry.
-
----
-
-## 🚀 Setup & Installation
-
-**1. Clone the repository:**
-```bash
-git clone <your-repository-url>
-cd Insider_trading_project
+```
+SEC Form 4 ──► rank (deterministic) ──► GOVERNANCE GATE ──► tweets (Apify) ──► sentiment (LLM) ──► LightRAG index ──► learning loop
+                                              │ fail → quarantine (nothing published, no API spend)
+Chat: question ──► SQL facts (+ optional LightRAG graph context) ──► streamed, cited answer
 ```
 
-**2. Create a virtual environment & install requirements:**
+## What it does
+
+| Stage | What happens |
+|---|---|
+| **SEC ingestion** | Pulls open-market buys/sells (Form 4 codes **P** / **S**) from sec-api.io, newest first, paginated, incremental. |
+| **Ranking** | Net dollar flow per ticker, with secondary signals: number of insiders (**cluster** buying/selling), officer/director role, trade size vs. the insider's position, and share of the trade under a pre-scheduled **10b5-1 plan**. Joint-filer double reports are removed. No LLM involved. |
+| **Governance gate** | Five independent integrity checks (ingest reconciliation, notional reconciliation via a separate SQL path, per-ticker bounds, ranking arithmetic/order, checksum). Any failure → run is **quarantined**: the ranking is never published and no money is spent on tweets/LLMs. |
+| **Tweets** | Apify scraper for the ranked tickers; parallel, cached, budget-capped; retweets/spam/non-English dropped. |
+| **Sentiment** | Free-model LLM chain classifies tweets (bullish/bearish/neutral); strict output validation; unlabelled stays unlabelled. |
+| **LightRAG** (switchable) | Each run's trades + sentiment are indexed into a knowledge graph; chat adds graph context to the SQL facts. Toggle in the sidebar or `ENABLE_LIGHTRAG`. |
+| **Learning loop** | Only after the gate passes: low-confidence labels get a second opinion from a different model (disagreement → neutral), agreed labels become few-shot examples, quality metrics are tracked (Health tab). |
+| **Chat** | Answers only from retrieved evidence, cites `[RANK …]`/`[SEC Form 4 …]`/`[SENT …]` tags that are verified against the evidence, shows a confidence badge, streams tokens, accepts 👍/👎. Chart requests bypass the LLM and render interactive Plotly charts. |
+
+## Run it
+
 ```bash
-conda create -n Insi_trade_venv python=3.10 -y
-conda activate Insi_trade_venv
+conda activate ai                      # Python 3.11
 pip install -r requirements.txt
+cp .env.example .env                   # then fill in your keys
+python scripts/check_keys.py           # one tiny live call per service
+streamlit run app.py
 ```
 
-**3. Configure Environment Variables:**
-Add the following tokens to a `.env` file in the root directory:
-```env
-OPENROUTER_API_KEY="your_openrouter_key"
-APIFY_API_TOKEN="your_apify_token"
+* **Refresh data** (sidebar) runs the pipeline in the background; you can keep chatting. Nothing runs on a schedule — it only runs when you click.
+* **Demo mode** switches to a separate database of *fictional* companies, so you can try everything without API keys. Your live data is never touched.
+* CLI: `python scripts/run_pipeline.py` · tests: `pip install -r requirements-dev.txt && pytest`
+
+## Keys & cost (all free tiers)
+
+| Service | Used for | Notes |
+|---|---|---|
+| sec-api.io | Form 4 data | free tier is enough |
+| Groq | primary LLM (`gpt-oss-120b`, ~1 s) | ~1000 requests/day free |
+| OpenRouter | fallback LLMs, **`:free` models only** | ~50 free requests/day; paid models are rejected at startup unless `ALLOW_PAID_MODELS=true` |
+| Apify | tweets | pay-per-tweet ($0.0004). A budget cap (`APIFY_MONTHLY_BUDGET_USD`, default $2) is checked before every scrape. **Apify also bills runs that return nothing.** |
+
+Embeddings are computed locally (fastembed, ~67 MB downloaded once to `data/models`) — no key, no rate limits.
+
+## Known limitations
+
+* Form 4s can be filed up to **two business days** after the trade, so this is "recent", not "real-time".
+* Social sentiment is AI-labelled and noisy; small samples are shown with their size.
+* The Apify free plan appears to cap results (10 per run) and the scraper can return empty placeholders when throttled;
+  the pipeline then reports `partial` instead of failing. Set `APIFY_ACTOR_ID` to try another scraper (its output fields may need mapping in `tools/apify_tool.py`).
+* Scraping X may conflict with X's terms of service — review before any non-personal use.
+* Informational only; **not investment advice**.
+
+## Layout
+
 ```
-
-**4. Run the UI:**
-```bash
-PYTHONPATH=. streamlit run app.py
+app.py                  Streamlit UI (Chat · Dashboard · Pipeline · Health)
+core/                   system factory, live health checks
+agents/                 sec_data, ranking, social_scraper, sentiment, indexing, retrieval, chat, visualization, supervisor
+tools/                  sec_api, apify, llm (provider chain), lightrag (own event-loop thread), db (thread-safe DuckDB), charts
+skills/                 integrity_checks (governance gate), learning_loop
+telemetry/              OpenTelemetry (set OTEL_CONSOLE=true to print spans), quarantine
+config/                 settings + prompts      db/schema.sql      scripts/      tests/
 ```
-> **Tip:** If there are no Form 4 filings on the SEC in the last 24 hours, use the **"Load Demo Data"** button in the Streamlit sidebar to inject realistic mock data and test the full pipeline.
-
----
-
-## 📸 Sample Input & Output
-
-*Sample 1:*
-![Input Output 3](./Screenshot%202026-04-14%20at%206.50.54%E2%80%AFPM.png)
-
-*Sample 2:*
-![Input Output 4](./Screenshot%202026-04-14%20at%206.51.03%E2%80%AFPM.png)
-
-![Input Output 5](./Screenshot%202026-04-14%20at%206.51.10%E2%80%AFPM.png)
-
-
----
-
-## 🔑 APIFY Token Usage Tracking
-
-As requested, the Apify Actor has been heavily utilized to test social retrieval workflows. The system automatically restricts the Actor to the Top 5 tickers to optimize CU spending.
-
-![Input Output 6](./Screenshot%202026-04-14%20at%206.51.17%E2%80%AFPM.png)
-
----
-
-## 🧠 The "Closed Learning Loop"
-
-This specific requirement was fulfilled via an integration of OpenTelemetry + SQLite validation rules:
-1. **Telemetry**: Every operation (OpenRouter token sizes, prompt times, API latency) is tracked as a Span instance. 
-2. **Confidence Measurement**: The Supervisor Agent grades output structures.
-3. **Loop Activation**: We utilize the `skills/learning_loop.py` script. The Telemetry data provides "feedback" over which prompt models are hallucinating variables vs extracting perfectly, dynamically triggering re-runs on low-confidence outputs.
-
----
-**Thank you for your review!** Please feel free to test the repository locally, the codebase has been extensively reviewed to ensure seamless setup.

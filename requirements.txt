@@ -1,14 +1,17 @@
-sec-api
-apify-client
-lightrag-hku
-duckdb
-pandas
-matplotlib
-plotly
-httpx
-pydantic
-pydantic-settings
-python-dotenv
-opentelemetry-api
-opentelemetry-sdk
-opentelemetry-exporter-otlp
+# Tested with Python 3.11 (conda env "ai"). Install:  pip install -r requirements.txt
+streamlit==1.55.0
+duckdb==2.0.0
+pandas==2.3.3
+numpy==1.26.4
+plotly==7.1.0
+httpx==0.28.1
+pydantic==2.12.5
+pydantic-settings==2.16.2
+python-dotenv==1.2.2
+sec-api==1.0.36
+apify-client==3.4.0
+lightrag-hku==1.5.7
+fastembed==0.9.1          # local embeddings (free, no rate limits); model cached in ./data/models
+opentelemetry-api==1.42.1
+opentelemetry-sdk==1.42.1
+requests==2.34.2

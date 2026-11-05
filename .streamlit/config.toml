@@ -1,0 +1,5 @@
+[server]
+address = "localhost"   # the app spends API credit: don't expose it to the network
+
+[browser]
+gatherUsageStats = false

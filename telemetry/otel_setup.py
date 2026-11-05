@@ -1,67 +1,39 @@
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import (
-    BatchSpanProcessor,
-    ConsoleSpanExporter,
-    SimpleSpanProcessor,
-)
-from opentelemetry.sdk.resources import Resource
-import json
+"""OpenTelemetry setup. Spans are always created; they are only *printed* when OTEL_CONSOLE=true.
+
+To ship traces to Jaeger/Grafana/Honeycomb add an OTLP exporter below.
+Never put raw user text in span attributes (use lengths / hashes instead).
+"""
 import logging
+
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+
+from config.settings import settings
 
 logger = logging.getLogger("telemetry")
 
 
-class CleanSpanFormatter:
-    """Custom formatter that prints spans in a readable, compact format."""
-
-    def format_span(self, span):
-        """Format a single ReadableSpan into a readable string."""
-        duration_ns = span.end_time - span.start_time
-        duration_ms = duration_ns / 1_000_000
-
-        attrs = dict(span.attributes) if span.attributes else {}
-
-        lines = [
-            "",
-            "─" * 60,
-            f"📊 SPAN: {span.name}",
-            f"   Duration : {duration_ms:.1f} ms",
-            f"   Status   : {span.status.status_code.name}",
-        ]
-
-        # Group attributes by prefix for readability
-        if attrs:
-            lines.append("   Attributes:")
-            for key, value in sorted(attrs.items()):
-                lines.append(f"      {key}: {value}")
-
-        lines.append("─" * 60)
-        return "\n".join(lines)
+def _format_span(span) -> str:
+    ms = (span.end_time - span.start_time) / 1_000_000
+    lines = [f"[span] {span.name}  {ms:.1f} ms  {span.status.status_code.name}"]
+    for k, v in sorted((span.attributes or {}).items()):
+        lines.append(f"         {k}: {v}")
+    return "\n".join(lines) + "\n"
 
 
-class FormattedConsoleExporter(ConsoleSpanExporter):
-    """Console exporter that uses our clean formatter."""
+_provider = TracerProvider(resource=Resource.create({"service.name": "insider-trading-agent"}))
+if settings.otel_console:
+    _provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter(formatter=_format_span)))
 
-    def __init__(self):
-        self._formatter = CleanSpanFormatter()
-        super().__init__(
-            formatter=lambda span: self._formatter.format_span(span)
-        )
-
-
-# ── Setup ────────────────────────────────────────────────────
-resource = Resource.create({"service.name": "insider-trading-agent"})
-provider = TracerProvider(resource=resource)
-
-# Console exporter — prints every completed span to the terminal
-console_exporter = FormattedConsoleExporter()
-provider.add_span_processor(SimpleSpanProcessor(console_exporter))
-
-# Tip: To send to Jaeger / Grafana / Honeycomb, add an OTLP exporter here:
 # from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-# otlp_exporter = OTLPSpanExporter(endpoint="http://localhost:4317")
-# provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+# from opentelemetry.sdk.trace.export import BatchSpanProcessor
+# _provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint="http://localhost:4317")))
 
-trace.set_tracer_provider(provider)
+try:
+    trace.set_tracer_provider(_provider)
+except Exception:  # provider already set (e.g. Streamlit re-import)
+    logger.debug("Tracer provider already configured")
+
 tracer = trace.get_tracer("insider-trading-agent")
