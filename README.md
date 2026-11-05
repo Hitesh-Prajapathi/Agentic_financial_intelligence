@@ -13,7 +13,7 @@ This project fulfills and exceeds all requirements outlined in the assessment:
 3. **Optimized Chat Bot (LightRAG)**: Uses **LightRAG** (a graph-based RAG architecture) to chunk, index, and retrieve structured context. The chatbot answers strictly based on this RAG context or gracefully refuses to speculate.
 4. **Dynamic Chart Generation**: Detects user intent ("draw me a chart of the top trades") and completely bypasses the standard LLM response path to dynamically generate and serve native data visualizations.
 5. **Closed Learning Loop**: Implements OpenTelemetry monitoring (`telemetry/otel_setup.py`) to trace agent logic, alongside a dedicated `learning_loop.py` skill that logs queries, measures confidence scores, and triggers re-evaluation cycles.
-6. **Scale, Logging, Error Handling (Extra Points)**: The architecture is built with dependency injection, strict schema validation (via Pydantic equivalents in Prompts), graceful fallback states, and structured logging across all tiers.
+6. **Scale, Logging, Error Handling**: The architecture is built with dependency injection, strict schema validation (via Pydantic equivalents in Prompts), graceful fallback states, and structured logging across all tiers.
 
 ---
 

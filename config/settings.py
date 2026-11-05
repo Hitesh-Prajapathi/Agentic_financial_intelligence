@@ -8,10 +8,10 @@ class Settings(BaseSettings):
     openrouter_api_key: str = Field(default="your_openrouter_key_here")
     
     # Models
-    openrouter_model_chat: str = Field(default="openrouter/auto")
-    openrouter_model_classify: str = Field(default="mistralai/mixtral-8x7b-instruct")
+    openrouter_model_chat: str = Field(default="deepseek/deepseek-v4-flash:free")
+    openrouter_model_classify: str = Field(default="deepseek/deepseek-v4-flash:free")
     lightrag_storage_backend: str = Field(default="networkx")
-    lightrag_llm_model: str = Field(default="openrouter/auto")
+    lightrag_llm_model: str = Field(default="deepseek/deepseek-v4-flash:free")
     lightrag_embedding_model: str = Field(default="text-embedding-3-small")
     
     # Database Configuration

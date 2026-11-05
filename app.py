@@ -29,7 +29,7 @@ st.set_page_config(page_title="Insider Trading AI", page_icon="📈", layout="wi
 # Suppress noisy third-party logs
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("opentelemetry").setLevel(logging.WARNING)
+logging.getLogger("opentelemetry").setLevel(logging.INFO)
 logging.getLogger("lightrag").setLevel(logging.WARNING)
 logging.getLogger("apify_client").setLevel(logging.WARNING)
 
