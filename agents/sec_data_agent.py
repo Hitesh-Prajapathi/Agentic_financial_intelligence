@@ -1,79 +1,64 @@
-from tools.sec_api_tool import SecApiTool, ParsingError, UpstreamAPIError
-from telemetry.otel_setup import tracer
+"""Stage 1: pull new Form 4 filings from sec-api.io and store them."""
 import logging
+
+from telemetry.otel_setup import tracer
+from tools.sec_api_tool import ParsingError, UpstreamAPIError  # noqa: F401  (re-exported for callers)
+
+logger = logging.getLogger(__name__)
+
 
 class DBWriteError(Exception):
     pass
 
+
 class SecDataAgent:
     def __init__(self, sec_tool, db_tool, settings):
-        self.sec_tool = sec_tool
-        self.db_tool = db_tool
-        self.settings = settings
-        self.run_id = None
-        self.logger = logging.getLogger(__name__)
+        self.sec_tool, self.db, self.settings = sec_tool, db_tool, settings
 
     def run(self) -> dict:
         with tracer.start_as_current_span("sec_data_agent.run") as span:
-            span.set_attribute("agent.name", "SecDataAgent")
-            if self.run_id:
-                span.set_attribute("agent.run_id", self.run_id)
-            
-            results = {
-                "filings_ingested": 0,
-                "transactions_found": 0,
-                "duplicates_skipped": 0,
-                "raw_filings": [],
-                "db_filings": [],
-                "raw_transactions": []
-            }
-            
+            def page_is_known(rows):  # stop paging once a whole page is already in the DB (caught up)
+                accs = [r.get("accessionNo") for r in rows if r.get("accessionNo")]
+                return bool(accs) and len(self.db.existing_accessions(accs)) == len(accs)
+
+            raw = self.sec_tool.fetch_recent_filings(page_is_known=page_is_known)
+            seen, unique = set(), []
+            for r in raw:  # pagination can repeat a filing if new ones arrive mid-fetch
+                acc = r.get("accessionNo")
+                if acc and acc not in seen:
+                    seen.add(acc)
+                    unique.append(r)
+
+            existing = self.db.existing_accessions([r["accessionNo"] for r in unique])
+            filings, txns, parse_errors = [], [], 0
+            for r in unique:
+                if r["accessionNo"] in existing:
+                    continue
+                try:
+                    f, t = self.sec_tool.parse_filing(r)
+                except ParsingError as e:
+                    parse_errors += 1
+                    logger.warning("%s", e)
+                    continue
+                filings.append(f)
+                txns.extend(t)
+
             try:
-                raw_filings = self.sec_tool.fetch_recent_filings(hours=self.settings.filing_lookback_hours)
-                results["raw_filings"] = raw_filings
-                
-                if raw_filings:
-                    placeholders = ','.join(['?'] * len(raw_filings))
-                    acc_nos = [f.get('accessionNo') for f in raw_filings if f.get('accessionNo')]
-                    
-                    if acc_nos:
-                        existing = self.db_tool.query(f"SELECT accession_number FROM filings WHERE accession_number IN ({placeholders})", acc_nos)
-                        existing_set = {row[0] for row in existing}
-                        
-                        new_filings = []
-                        new_txns = []
-                        
-                        for raw in raw_filings:
-                            acc_no = raw.get('accessionNo')
-                            if not acc_no or acc_no in existing_set:
-                                results["duplicates_skipped"] += 1
-                                continue
-                                
-                            try:
-                                filing, txns = self.sec_tool.parse_filing(raw)
-                                new_filings.append(filing)
-                                new_txns.extend(txns)
-                                results["db_filings"].append(filing)
-                            except ParsingError as e:
-                                self.logger.error(f"Parsing error: {e}")
-                                
-                        if new_filings:
-                            try:
-                                self.db_tool.insert_filings(new_filings)
-                                results["filings_ingested"] = len(new_filings)
-                                
-                                self.db_tool.insert_transactions(new_txns)
-                                results["transactions_found"] = len(new_txns)
-                                results["raw_transactions"] = new_txns
-                            except Exception as e:
-                                raise DBWriteError(f"Database insert failed: {e}")
-                                
-            except UpstreamAPIError as e:
-                self.logger.error(f"Upstream API Error: {e}")
-                span.set_attribute("error", str(e))
-                raise
-                
-            span.set_attribute("filings.ingested", results["filings_ingested"])
-            span.set_attribute("filings.duplicates_skipped", results["duplicates_skipped"])
-            
-            return results
+                with self.db.transaction():
+                    self.db.insert_filings(filings)
+                    self.db.insert_transactions(txns)
+            except Exception as e:  # noqa: BLE001
+                raise DBWriteError(f"Database insert failed: {e}") from e
+
+            result = {
+                "filings_fetched": len(unique),
+                "filings_ingested": len(filings),
+                "transactions_found": len(txns),
+                "duplicates_skipped": len(unique) - len(filings) - parse_errors,
+                "parse_errors": parse_errors,
+                "accessions": [f["accession_number"] for f in filings],
+                "expected_txns": len(txns),
+            }
+            span.set_attribute("filings.ingested", result["filings_ingested"])
+            span.set_attribute("filings.duplicates_skipped", result["duplicates_skipped"])
+            return result

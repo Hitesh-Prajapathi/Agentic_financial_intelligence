@@ -1,72 +1,52 @@
+"""Answer generation (streamed) with citation verification."""
 import logging
 import re
-from config.settings import settings
+from pathlib import Path
+from typing import Iterator
+
+from agents.retrieval_agent import citation_tags
 from telemetry.otel_setup import tracer
 
-class ChatAgent:
-    def __init__(self, llm_tool, settings=settings):
-        self.llm_tool = llm_tool
-        self.settings = settings
-        self.run_id = None
-        self.logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+PROMPT_PATH = Path(__file__).resolve().parent.parent / "config" / "prompts" / "chat_agent.txt"
+MAX_HISTORY = 6  # last 3 exchanges
 
-    def run(self, context_bundle: dict, user_question: str) -> dict:
-        with tracer.start_as_current_span("chat_agent.run") as span:
-            span.set_attribute("agent.name", "ChatAgent")
-            if self.run_id:
-                span.set_attribute("agent.run_id", self.run_id)
-                
-            confidence = context_bundle.get("confidence", "low")
-            rag_context = context_bundle.get("rag_context", "")
-            db_context = context_bundle.get("db_context", "")
-            
-            span.set_attribute("retrieval.confidence", confidence)
-            
-            try:
-                with open("config/prompts/chat_agent.txt", "r") as f:
-                    system_template = f.read()
-                    
-                system_prompt = system_template.format(
-                    rag_context=rag_context,
-                    db_context=db_context,
-                    confidence=confidence
-                )
-                
-                if confidence.lower() == "low":
-                    warning = "WARNING: Retrieval confidence is LOW. Be especially careful to indicate uncertainty and avoid making claims beyond what the context supports.\n\n"
-                    system_prompt = warning + system_prompt
-                    
-                messages = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_question}
-                ]
-                
-                response_text = self.llm_tool.call_llm(
-                    messages=messages,
-                    model=self.settings.openrouter_model_chat,
-                    temperature=0.1 # Keep it deterministic
-                )
-                
-                # Verify basic citations (naive check for dates or tickers generally works, or just check 'per Form 4' or 'tweets')
-                has_citations = "202" in response_text or "Form 4" in response_text or "tweet" in response_text
-                
-                if "sufficient data" in response_text.lower() or "don't have" in response_text.lower() or "doesn't have" in response_text.lower():
-                    has_citations = False
-                    
-                if not has_citations and "sufficient data" not in response_text.lower() and "don't have" not in response_text.lower() and "doesn't have" not in response_text.lower():
-                    response_text += "\n\n[Note: This response could not be verified against source data]"
-                    has_citations = False
-                    
-                span.set_attribute("response.length", len(response_text))
-                span.set_attribute("response.has_citations", has_citations)
-                
-                return {
-                    "response": response_text,
-                    "has_citations": has_citations,
-                    "confidence": confidence
-                }
-                
-            except Exception as e:
-                self.logger.error(f"Chat agent failed: {e}")
-                span.set_attribute("error", str(e))
-                raise
+
+class ChatAgent:
+    def __init__(self, llm_tool, settings):
+        self.llm, self.settings = llm_tool, settings
+        self._template = PROMPT_PATH.read_text()
+
+    def build_messages(self, evidence: dict, question: str, history: list[dict] | None = None) -> list[dict]:
+        as_of = evidence["as_of"].strftime("%Y-%m-%d %H:%M UTC") if evidence.get("as_of") else "unknown (no data loaded)"
+        system = self._template.format(
+            as_of=as_of,
+            sql_context=evidence["sql_context"] or "(no data loaded yet)",
+            rag_context=evidence["rag_context"] or "(none)")
+        if evidence["confidence"] == "low":
+            system = (f"CAUTION: retrieval confidence is LOW ({evidence['confidence_reason']}). "
+                      "Be explicit about what is missing and do not extrapolate.\n\n") + system
+        msgs = [{"role": "system", "content": system}]
+        for m in (history or [])[-MAX_HISTORY:]:
+            if m.get("role") in ("user", "assistant") and m.get("content"):
+                msgs.append({"role": m["role"], "content": m["content"][:1500]})
+        msgs.append({"role": "user", "content": question})
+        return msgs
+
+    def stream(self, evidence: dict, question: str, history: list[dict] | None = None) -> Iterator[str]:
+        with tracer.start_as_current_span("chat_agent.stream") as span:
+            span.set_attribute("retrieval.confidence", evidence["confidence"])
+            yield from self.llm.stream(self.build_messages(evidence, question, history), temperature=0.1, max_tokens=900)
+
+    def run(self, evidence: dict, question: str, history: list[dict] | None = None) -> str:
+        return "".join(self.stream(evidence, question, history))
+
+    @staticmethod
+    def verify_citations(response: str, evidence: dict) -> dict:
+        """Which of the cited tags actually exist in the evidence we supplied?"""
+        cited = citation_tags(response)
+        known = evidence.get("known_sources", set())
+        valid = cited & known
+        refused = bool(re.search(r"don'?t have (any )?data|no data", response, re.I))
+        return {"cited": sorted(cited), "valid": sorted(valid), "invalid": sorted(cited - valid),
+                "grounded": bool(valid) or refused, "refused": refused}

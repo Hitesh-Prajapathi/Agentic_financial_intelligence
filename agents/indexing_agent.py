@@ -1,95 +1,59 @@
-from telemetry.otel_setup import tracer
+"""Stage 5: turn the day's ranked trades + sentiment into readable context documents for LightRAG."""
 import logging
-from datetime import datetime, timezone
+import re
+
+from telemetry.otel_setup import tracer
+
+logger = logging.getLogger(__name__)
+_URL_RE = re.compile(r"https?://\S+")
+
+
+def _usd(x) -> str:
+    return f"${abs(float(x)):,.0f}"
+
 
 class IndexingAgent:
     def __init__(self, lightrag_tool, db_tool, settings=None):
-        self.lightrag_tool = lightrag_tool
-        self.db_tool = db_tool
-        self.settings = settings
-        self.run_id = None
-        self.logger = logging.getLogger(__name__)
+        self.rag, self.db, self.settings = lightrag_tool, db_tool, settings
 
-    def build_context_block(self, ticker: str, date_str: str) -> str:
-        trades = self.db_tool.query(
-            "SELECT rank, insider_name, net_dollar_value, dominant_direction FROM top_trades WHERE issuer_ticker=? AND run_date=?", 
-            [ticker, date_str]
-        )
-        
-        sentiment = self.db_tool.query(
-            "SELECT total_tweets, bullish_count, bearish_count, neutral_count, avg_confidence, sentiment_index FROM sentiment_summary WHERE ticker=? AND summary_date=?",
-            [ticker, date_str]
-        )
-        
-        tweets = self.db_tool.query(
-            "SELECT text FROM tweets WHERE ticker=? AND DATE(created_at)=? ORDER BY like_count DESC LIMIT 5",
-            [ticker, date_str]
-        )
-        
-        block = f"DATA REPORT FOR TICKER: {ticker} ON DATE: {date_str}\n"
-        block += "="*40 + "\n"
-        
-        if trades:
-            block += "INSIDER TRADING ACTIVITY:\n"
-            for t in trades:
-                block += f"- {t[1]} executing dominant {t[3]} with net dollar flow of ${t[2]}\n"
-            block += "\n"
-            
-        if sentiment:
-            s = sentiment[0]
-            dominant_sent = "Bullish" if s[5] > 0 else "Bearish" if s[5] < 0 else "Neutral"
-            block += f"SOCIAL SENTIMENT SUMMARY:\n"
-            block += f"- Total related tweets: {s[0]}\n"
-            block += f"- Sentiment split: {s[1]} Bullish, {s[2]} Bearish, {s[3]} Neutral\n"
-            block += f"- Overall Net Sentiment Index: {s[5]:.2f} ({dominant_sent})\n"
-            block += f"- AI Confidence Score: {s[4]:.2f}\n"
-            block += "\n"
-            
-        if tweets:
-            block += "KEY SOCIAL MEDIA POSTS:\n"
-            for tw in tweets:
-                clean_text = str(tw[0]).replace('\n', ' ')
-                block += f"- \"{clean_text}\"\n"
-                
-        return block
+    def build_blocks(self) -> list[str]:
+        trades = self.db.query_df(
+            """SELECT * FROM top_trades WHERE run_date = (SELECT MAX(run_date) FROM top_trades) ORDER BY rank""")
+        blocks = []
+        for t in trades.itertuples():
+            lines = [
+                f"Insider trading report for {t.issuer_name or t.issuer_ticker} (ticker {t.issuer_ticker}), {t.run_date}.",
+                f"Rank {t.rank} by absolute net open-market dollar flow. Dominant direction: {t.dominant_direction}. "
+                f"Net {_usd(t.net_dollar_value)} ({_usd(t.buy_value)} bought, {_usd(t.sell_value)} sold) across "
+                f"{t.transaction_count} transactions by {t.insider_count} insider(s).",
+                f"Largest trader: {t.insider_name} ({t.insider_title}).",
+            ]
+            if t.signal_tags:
+                lines.append("Signals: " + t.signal_tags.replace(",", ", ") + ".")
+            s = self.db.query(
+                """SELECT SUM(total_tweets), SUM(bullish_count), SUM(bearish_count), SUM(neutral_count),
+                          SUM(sentiment_index * total_tweets) / NULLIF(SUM(total_tweets), 0)
+                   FROM sentiment_summary WHERE ticker = ?""", [t.issuer_ticker])[0]
+            if s[0]:
+                lines.append(f"Social sentiment on X for {t.issuer_ticker}: {int(s[0])} tweets analysed — {int(s[1])} bullish, "
+                             f"{int(s[2])} bearish, {int(s[3])} neutral; net sentiment index {float(s[4]):+.2f} (range -1 to +1).")
+            tweets = self.db.query(
+                """SELECT x.text FROM tweets x JOIN tweet_sentiments s USING (tweet_id)
+                   WHERE x.ticker = ? ORDER BY x.like_count DESC, x.retweet_count DESC LIMIT 3""", [t.issuer_ticker])
+            for (txt,) in tweets:
+                lines.append(f'Notable post about {t.issuer_ticker}: "{_URL_RE.sub("", txt).strip()[:200]}"')
+            blocks.append("\n".join(lines))
+        return blocks
 
-    def run(self, build_all: bool = False) -> dict:
+    def run(self) -> dict:
         with tracer.start_as_current_span("indexing_agent.run") as span:
-            span.set_attribute("agent.name", "IndexingAgent")
-            if self.run_id:
-                span.set_attribute("agent.run_id", self.run_id)
-            
-            today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-            
-            query = "SELECT DISTINCT issuer_ticker FROM top_trades WHERE run_date=?"
-            params = [today_str]
-            
-            if build_all:
-                query = "SELECT DISTINCT issuer_ticker FROM top_trades"
-                params = []
-                
-            tickers_result = self.db_tool.query(query, params)
-            tickers = [row[0] for row in tickers_result] if tickers_result else []
-            
-            blocks = []
-            for tck in tickers:
-                dates_query = "SELECT DISTINCT run_date FROM top_trades WHERE issuer_ticker=?"
-                if not build_all:
-                    dates_query += f" AND run_date='{today_str}'"
-                    
-                dates_result = self.db_tool.query(dates_query, [tck])
-                dates = [row[0] for row in dates_result] if dates_result else []
-                
-                for d in dates:
-                    block = self.build_context_block(tck, d)
-                    blocks.append(block)
-                    
-            if blocks:
-                self.logger.info(f"Indexing {len(blocks)} context blocks into LightRAG...")
-                self.lightrag_tool.insert(blocks)
-                
-            span.set_attribute("lightrag.indexed_blocks", len(blocks))
-            return {
-                "indexed_blocks": len(blocks),
-                "tickers_updated": len(tickers)
-            }
+            if not self.rag.enabled:
+                return {"indexed_blocks": 0, "skipped": "LightRAG disabled"}
+            blocks = self.build_blocks()
+            if not blocks:
+                return {"indexed_blocks": 0, "skipped": "no ranked trades"}
+            if not self.rag.ensure_ready():
+                return {"indexed_blocks": 0, "skipped": f"LightRAG unavailable: {self.rag.error}"}
+            n = self.rag.insert(blocks)
+            span.set_attribute("lightrag.indexed_blocks", n)
+            return {"indexed_blocks": n}

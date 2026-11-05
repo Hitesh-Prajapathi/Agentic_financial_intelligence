@@ -1,85 +1,40 @@
+"""Chart requests bypass the LLM entirely: pick a chart type from the question and build it from SQL."""
 import logging
+
 from telemetry.otel_setup import tracer
-from config.settings import settings
+
+logger = logging.getLogger(__name__)
+
 
 class VisualizationAgent:
-    def __init__(self, chart_tool, db_tool, settings=settings):
-        self.chart_tool = chart_tool
-        self.db_tool = db_tool
-        self.settings = settings
-        self.run_id = None
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, chart_tool, db_tool, settings):
+        self.charts, self.db, self.settings = chart_tool, db_tool, settings
 
-    def run(self, intent: dict) -> dict:
+    def run(self, question: str, tickers: list[str]) -> dict:
         with tracer.start_as_current_span("visualization_agent.run") as span:
-            span.set_attribute("agent.name", "VisualizationAgent")
-            if self.run_id:
-                span.set_attribute("agent.run_id", self.run_id)
-                
-            query_type = intent.get("query_type", "summary")
-            tickers = intent.get("tickers", [])
-            
-            span.set_attribute("query_type", query_type)
-            span.set_attribute("tickers_count", len(tickers))
-            
+            low = question.lower()
             try:
-                filepath = None
-                chart_type = None
-                
-                if query_type == "summary" or (not tickers and query_type in ["entity", "relationship", "comparison"]):
-                    # Top trades summary across market
-                    trades_df = self.db_tool.query_df("SELECT * FROM top_trades ORDER BY run_date DESC, rank ASC LIMIT ?", [self.settings.top_n_trades])
-                    trades = trades_df.to_dict('records')
-                    
-                    if trades:
-                        filepath = self.chart_tool.plot_top_trades_summary(trades)
-                        chart_type = "top_trades_summary"
-                        
-                elif query_type == "comparison" or query_type == "relationship":
-                    # Sentiment vs Trades for the first ticker
-                    if tickers:
-                        ticker = tickers[0]
-                        trades_df = self.db_tool.query_df("SELECT run_date, net_dollar_value FROM top_trades WHERE issuer_ticker=?", [ticker])
-                        sent_df = self.db_tool.query_df("SELECT summary_date, sentiment_index FROM sentiment_summary WHERE ticker=?", [ticker])
-                        
-                        trades = trades_df.to_dict('records')
-                        sentiment = sent_df.to_dict('records')
-                        
-                        if trades and sentiment:
-                            filepath = self.chart_tool.plot_sentiment_vs_trades(ticker, trades, sentiment)
-                            chart_type = "sentiment_vs_trades"
-                            
-                else: # entity or explicitly sentiment focused
-                    if tickers:
-                        ticker = tickers[0]
-                        sent_df = self.db_tool.query_df(
-                            "SELECT SUM(bullish_count) as bullish_count, SUM(bearish_count) as bearish_count, SUM(neutral_count) as neutral_count FROM sentiment_summary WHERE ticker=?", 
-                            [ticker]
-                        )
-                        counts = sent_df.to_dict('records')[0] if not sent_df.empty else {}
-                        
-                        if counts and not all(v == 0 or v is None for v in counts.values()):
-                            counts = {k: v for k, v in counts.items() if v is not None}
-                            filepath = self.chart_tool.plot_sentiment_distribution(ticker, counts)
-                            chart_type = "sentiment_distribution"
-                
-                if filepath:
-                    return {
-                        "chart_path": filepath,
-                        "chart_type": chart_type
-                    }
-                else:
-                    return {
-                        "chart_path": None,
-                        "chart_type": None,
-                        "error": "Insufficient data to generate chart"
-                    }
-                    
-            except Exception as e:
-                self.logger.error(f"Visualization agent failed: {e}")
-                span.set_attribute("error", str(e))
-                return {
-                    "chart_path": None,
-                    "chart_type": None,
-                    "error": str(e)
-                }
+                if tickers:
+                    tk = tickers[0]
+                    if any(w in low for w in ("vs", "versus", "compare", "correlat", "against", "relationship")):
+                        trades = self.db.query_df("SELECT run_date, net_dollar_value FROM top_trades WHERE issuer_ticker = ? ORDER BY run_date", [tk])
+                        sent = self.db.query_df("SELECT summary_date, sentiment_index FROM sentiment_summary WHERE ticker = ? ORDER BY summary_date", [tk])
+                        if not trades.empty or not sent.empty:
+                            span.set_attribute("chart.type", "sentiment_vs_trades")
+                            return {"figure": self.charts.sentiment_vs_trades(tk, trades, sent), "kind": f"{tk} flow vs sentiment"}
+                    else:
+                        c = self.db.query_df(
+                            """SELECT SUM(bullish_count) bullish_count, SUM(bearish_count) bearish_count, SUM(neutral_count) neutral_count
+                               FROM sentiment_summary WHERE ticker = ?""", [tk])
+                        if not c.empty and c.iloc[0].notna().all() and c.iloc[0].sum() > 0:
+                            span.set_attribute("chart.type", "sentiment_distribution")
+                            return {"figure": self.charts.sentiment_distribution(tk, c.iloc[0].to_dict()), "kind": f"{tk} sentiment"}
+                trades = self.db.latest_top_trades(self.settings.top_n_trades)
+                if trades.empty:
+                    return {"figure": None, "error": "No ranked trades yet — run the pipeline or load demo data."}
+                span.set_attribute("chart.type", "top_trades_summary")
+                note = f"No chart data for {tickers[0]} — showing the market-wide top trades instead." if tickers else None
+                return {"figure": self.charts.top_trades_summary(trades), "kind": "top trades", "note": note}
+            except Exception as e:  # noqa: BLE001
+                logger.error("Visualization failed: %s", e)
+                return {"figure": None, "error": f"Could not build chart: {e}"}

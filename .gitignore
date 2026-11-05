@@ -30,10 +30,9 @@ __pycache__/
 # PDFs (kept locally, excluded from repo)
 *.pdf
 
-# Tests (kept locally, excluded from repo)
-tests/
 
-# Unused screenshots
-Screenshot*6.50.19*
-Screenshot*6.50.45*
-Screenshot*6.51.58*
+# Screenshots (retake when needed)
+Screenshot*
+
+# Local model cache, test caches
+.pytest_cache/

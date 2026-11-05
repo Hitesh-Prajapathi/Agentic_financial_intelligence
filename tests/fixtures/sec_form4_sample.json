@@ -1,0 +1,964 @@
+[
+ {
+  "id": "d8bb060ad6a0e4cbac70ba6ffe5b0261",
+  "accessionNo": "0001193125-26-449032",
+  "filedAt": "2026-11-05T11:15:01-05:00",
+  "schemaVersion": "X0609",
+  "documentType": "4",
+  "periodOfReport": "2026-11-04",
+  "notSubjectToSection16": false,
+  "aff10b5One": true,
+  "issuer": {
+   "cik": "1068851",
+   "name": "PROSPERITY BANCSHARES INC",
+   "tradingSymbol": "PB"
+  },
+  "reportingOwner": {
+   "cik": "1136856",
+   "name": "HOLMES NED S",
+   "address": {
+    "street1": "80 SUGAR CREEK CENTER BLVD.",
+    "city": "SUGAR LAND",
+    "state": "TX",
+    "zipCode": "77478"
+   },
+   "relationship": {
+    "isDirector": true,
+    "isOfficer": false,
+    "isTenPercentOwner": false,
+    "isOther": false
+   }
+  },
+  "nonDerivativeTable": {
+   "transactions": [
+    {
+     "securityTitle": "Common Stock",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "S",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 455,
+      "pricePerShare": 73.9631,
+      "acquiredDisposedCode": "A"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 66070
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    },
+    {
+     "securityTitle": "Common Stock",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "S",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 45,
+      "pricePerShare": 74.7,
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 66025
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    },
+    {
+     "securityTitle": "Common Stock",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "S",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 459,
+      "pricePerShare": 73.9615,
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 80734
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "By profit sharing plan"
+     }
+    },
+    {
+     "securityTitle": "Common Stock",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "S",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 41,
+      "pricePerShare": 74.73,
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 80693
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "By profit sharing plan"
+     }
+    },
+    {
+     "securityTitle": "Common Stock",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "S",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 95,
+      "pricePerShare": 74.0664,
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 38105
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "As trustee of SSH trust for adult daughter"
+     }
+    },
+    {
+     "securityTitle": "Common Stock",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "S",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 5,
+      "pricePerShare": 74.5,
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 38100
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "As trustee of SSH trust for adult daughter"
+     }
+    }
+   ],
+   "holdings": [
+    {
+     "securityTitle": "Common Stock",
+     "coding": {},
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 2000
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "By spouse"
+     }
+    },
+    {
+     "securityTitle": "Common Stock",
+     "coding": {},
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 8820
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "As trustee of granchildren's trust"
+     }
+    },
+    {
+     "securityTitle": "Common Stock",
+     "coding": {},
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 3720
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "By trust"
+     }
+    },
+    {
+     "securityTitle": "Common Stock",
+     "coding": {},
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 70070
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "By limited partnership"
+     }
+    }
+   ]
+  },
+  "ownerSignatureName": "/s/ Charlotte M. Rasche, Attorney in Fact",
+  "ownerSignatureNameDate": "2026-11-05"
+ },
+ {
+  "id": "637422918ba8208b763045838c7764df",
+  "accessionNo": "0001193125-26-448980",
+  "filedAt": "2026-11-05T10:41:44-05:00",
+  "schemaVersion": "X0609",
+  "documentType": "4",
+  "periodOfReport": "2026-11-02",
+  "notSubjectToSection16": false,
+  "aff10b5One": false,
+  "issuer": {
+   "cik": "1228454",
+   "name": "BCB BANCORP INC",
+   "tradingSymbol": "BCBP"
+  },
+  "reportingOwner": {
+   "cik": "1826510",
+   "name": "Gallotta Steven E.",
+   "address": {
+    "street1": "C/O BCB BANCORP, INC.",
+    "street2": "104-110 AVENUE C",
+    "city": "BAYONNE",
+    "state": "NJ",
+    "zipCode": "07002"
+   },
+   "relationship": {
+    "isDirector": true,
+    "isOfficer": false,
+    "isTenPercentOwner": false,
+    "isOther": false
+   }
+  },
+  "nonDerivativeTable": {
+   "transactions": [
+    {
+     "securityTitle": "Common Stock",
+     "transactionDate": "2026-11-02",
+     "coding": {
+      "formType": "4",
+      "code": "P",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 55,
+      "sharesFootnoteId": [
+       "F1"
+      ],
+      "pricePerShare": 9.1299,
+      "acquiredDisposedCode": "A"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 1514,
+      "sharesOwnedFollowingTransactionFootnoteId": [
+       "F2"
+      ]
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    }
+   ]
+  },
+  "footnotes": [
+   {
+    "id": "F1",
+    "text": "Represents shares of common stock purchased in the open market through a broker on November 2, 2026 to satisfy the minimum director share ownership requirement under New Jersey Banking Law (N.J.S.A. 17:9A-103)."
+   },
+   {
+    "id": "F2",
+    "text": "Includes 1,459 shares of restricted stock awarded on October 28, 2026, previously reported on Form 4 on October 30, 2026."
+   }
+  ],
+  "ownerSignatureName": "/s/ Steven E. Gallotta by Patricia M. Schaubeck, attorney-in-fact",
+  "ownerSignatureNameDate": "2026-11-05"
+ },
+ {
+  "id": "2c49891b914e7b45b9f3027601a758e7",
+  "accessionNo": "0001193125-26-448969",
+  "filedAt": "2026-11-05T10:37:13-05:00",
+  "schemaVersion": "X0609",
+  "documentType": "4",
+  "periodOfReport": "2026-11-03",
+  "notSubjectToSection16": false,
+  "aff10b5One": false,
+  "issuer": {
+   "cik": "1228454",
+   "name": "BCB BANCORP INC",
+   "tradingSymbol": "BCBP"
+  },
+  "reportingOwner": {
+   "cik": "1628816",
+   "name": "Kim Denny",
+   "address": {
+    "street1": "C/O BCB BANCORP, INC.",
+    "street2": "104-110 AVENUE C",
+    "city": "BAYONNE",
+    "state": "NJ",
+    "zipCode": "07002"
+   },
+   "relationship": {
+    "isDirector": true,
+    "isOfficer": false,
+    "isTenPercentOwner": false,
+    "isOther": false
+   }
+  },
+  "nonDerivativeTable": {
+   "transactions": [
+    {
+     "securityTitle": "Common Stock",
+     "transactionDate": "2026-11-03",
+     "coding": {
+      "formType": "4",
+      "code": "P",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 57,
+      "sharesFootnoteId": [
+       "F1"
+      ],
+      "pricePerShare": 8.785,
+      "acquiredDisposedCode": "A"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 1516,
+      "sharesOwnedFollowingTransactionFootnoteId": [
+       "F2"
+      ]
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    }
+   ]
+  },
+  "footnotes": [
+   {
+    "id": "F1",
+    "text": "Represents shares of common stock purchased in the open market on November 3, 2026 to satisfy the minimum director share ownership requirement under New Jersey Banking Law ( N.J.S.A. 17:9A-103)."
+   },
+   {
+    "id": "F2",
+    "text": "Includes 1,459 shares of restricted stock awarded on October 28, 2026, previously reported on Form 4 on October 30, 2026."
+   }
+  ],
+  "ownerSignatureName": "/s/ Denny Kim by Patricia M. Schaubeck, attorney-in-fact",
+  "ownerSignatureNameDate": "2026-11-05"
+ },
+ {
+  "id": "783add84c951e31f4917a6e1bd7c285e",
+  "accessionNo": "0001193125-26-448845",
+  "filedAt": "2026-11-05T09:35:48-05:00",
+  "schemaVersion": "X0609",
+  "documentType": "4",
+  "periodOfReport": "2026-11-03",
+  "notSubjectToSection16": false,
+  "aff10b5One": false,
+  "issuer": {
+   "cik": "1495153",
+   "name": "MakeMyTrip Ltd",
+   "tradingSymbol": "MMYT"
+  },
+  "reportingOwner": {
+   "cik": "1971627",
+   "name": "Magow Rajesh",
+   "address": {
+    "street1": "CM 717 B, THE CAMELLIAS",
+    "street2": "DLF PHASE V GOLF LINKS,",
+    "city": "GURGAON",
+    "stateDescription": "INDIA",
+    "zipCode": "122009"
+   },
+   "relationship": {
+    "isDirector": true,
+    "isOfficer": true,
+    "officerTitle": "Group Chief Executive Officer",
+    "isTenPercentOwner": false,
+    "isOther": false
+   }
+  },
+  "nonDerivativeTable": {
+   "transactions": [
+    {
+     "securityTitle": "Ordinary Shares",
+     "transactionDate": "2026-11-03",
+     "coding": {
+      "formType": "4",
+      "code": "M",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 20000,
+      "pricePerShare": 0.0005,
+      "acquiredDisposedCode": "A"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 20000
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    },
+    {
+     "securityTitle": "Ordinary Shares",
+     "transactionDate": "2026-11-03",
+     "coding": {
+      "formType": "4",
+      "code": "S",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 20000,
+      "pricePerShare": 45.25,
+      "pricePerShareFootnoteId": [
+       "F1"
+      ],
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 0
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    },
+    {
+     "securityTitle": "Ordinary Shares",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "M",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 10000,
+      "pricePerShare": 0.0005,
+      "acquiredDisposedCode": "A"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 10000
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    },
+    {
+     "securityTitle": "Ordinary Shares",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "S",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 10000,
+      "pricePerShare": 50.11,
+      "pricePerShareFootnoteId": [
+       "F2"
+      ],
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 0
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    }
+   ]
+  },
+  "derivativeTable": {
+   "transactions": [
+    {
+     "securityTitle": "Restricted Stock Units",
+     "conversionOrExercisePrice": 0.0005,
+     "transactionDate": "2026-11-03",
+     "coding": {
+      "formType": "4",
+      "code": "M",
+      "equitySwapInvolved": false
+     },
+     "exerciseDateFootnoteId": [
+      "F3"
+     ],
+     "expirationDateFootnoteId": [
+      "F3"
+     ],
+     "underlyingSecurity": {
+      "title": "Ordinary Shares",
+      "shares": 20000
+     },
+     "amounts": {
+      "shares": 20000,
+      "pricePerShare": 0,
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 1413663
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    },
+    {
+     "securityTitle": "Restricted Stock Units",
+     "conversionOrExercisePrice": 0.0005,
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "M",
+      "equitySwapInvolved": false
+     },
+     "exerciseDateFootnoteId": [
+      "F4"
+     ],
+     "expirationDateFootnoteId": [
+      "F4"
+     ],
+     "underlyingSecurity": {
+      "title": "Ordinary Shares",
+      "shares": 10000
+     },
+     "amounts": {
+      "shares": 10000,
+      "pricePerShare": 0,
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 1403663
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    }
+   ]
+  },
+  "footnotes": [
+   {
+    "id": "F1",
+    "text": "The price reported in Column 4 is a weighted average price. These ordinary shares were sold in multiple transactions at prices ranging from $45.20 to $45.45. The reporting person undertakes to provide the Company, any shareholder of the Company, or the staff of the Securities and Exchange Commission, upon request, full information regarding the number of ordinary shares sold at each separate price within the range set forth in this footnote."
+   },
+   {
+    "id": "F2",
+    "text": "The price reported in Column 4 is a weighted average price. These ordinary shares were sold in multiple transactions at prices ranging from $50.01 to $50.37. The reporting person undertakes to provide the Company, any shareholder of the Company, or the staff of the Securities and Exchange Commission, upon request, full information regarding the number of ordinary shares sold at each separate price within the range set forth in this footnote."
+   },
+   {
+    "id": "F3",
+    "text": "Following the transaction dated November 3, 2026, 1,384,185 Restricted Stock Units (RSUs) are vested, with expiration dates ranging from March 31, 2028 to June 30, 2031 unless extended at the sole discretion of the Company. In addition, 29,478 RSUs remain unvested and are scheduled to vest between April 1, 2027 to April 1, 2030, with expiration dates ranging from March 31, 2031 to March 31, 2034, subject to extension at the sole discretion of the Company, and include 14,739 performance-based RSUs relating to 14,739 ordinary shares subject to the achievement of certain performance-based vesting conditions."
+   },
+   {
+    "id": "F4",
+    "text": "Following the transaction dated November 4, 2026, 1,374,185 RSUs are vested, with expiration dates ranging from March 31, 2028 to June 30, 2031 unless extended at the sole discretion of the Company. In addition, 29,478 RSUs remain unvested and are scheduled to vest between April 1, 2027 to April 1, 2030, with expiration dates ranging from March 31, 2031 to March 31, 2034, subject to extension at the sole discretion of the Company, and include 14,739 performance-based RSUs relating to 14,739 Ordinary Shares subject to the achievement of certain performance-based vesting conditions."
+   }
+  ],
+  "ownerSignatureName": "/s/ Rajesh Magow",
+  "ownerSignatureNameDate": "2026-11-05"
+ },
+ {
+  "id": "1b2d0ecd5e99781b69eeb0e0bcd0c1b1",
+  "accessionNo": "0001570585-26-000156",
+  "filedAt": "2026-11-05T09:20:19-05:00",
+  "schemaVersion": "X0609",
+  "documentType": "4",
+  "periodOfReport": "2026-11-04",
+  "notSubjectToSection16": false,
+  "aff10b5One": false,
+  "issuer": {
+   "cik": "1570585",
+   "name": "Liberty Global Ltd.",
+   "tradingSymbol": "LBTY"
+  },
+  "reportingOwner": {
+   "cik": "1565787",
+   "name": "Rodriguez Enrique",
+   "address": {
+    "street1": "1550 WEWATTA STREET, STE 1000",
+    "city": "DENVER",
+    "state": "CO",
+    "zipCode": "80202"
+   },
+   "relationship": {
+    "isDirector": false,
+    "isOfficer": true,
+    "officerTitle": "EVP, Chief Technology Officer",
+    "isTenPercentOwner": false,
+    "isOther": false
+   }
+  },
+  "nonDerivativeTable": {
+   "transactions": [
+    {
+     "securityTitle": "Class A Common Shares",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "P",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 211313,
+      "pricePerShare": 9.4456,
+      "pricePerShareFootnoteId": [
+       "F1"
+      ],
+      "acquiredDisposedCode": "A"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 602378
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "By Trust",
+      "natureOfOwnershipFootnoteId": [
+       "F2"
+      ]
+     }
+    }
+   ],
+   "holdings": [
+    {
+     "securityTitle": "Class A Common Shares",
+     "coding": {},
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 100209
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    },
+    {
+     "securityTitle": "Class C Common Shares",
+     "coding": {},
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 106085
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    },
+    {
+     "securityTitle": "Class C Common Shares",
+     "coding": {},
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 19027
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "By 401(k) Plan"
+     }
+    }
+   ]
+  },
+  "footnotes": [
+   {
+    "id": "F1",
+    "text": "The price reflects a weighted average of purchases made at prices ranging from $9.102 to $9.525. The Reporting Person undertakes to provide upon request by the staff of the Securities and Exchange Commission, the Issuer, or a security holder of the Issuer, information regarding the number of shares purchased at each separate price."
+   },
+   {
+    "id": "F2",
+    "text": "Shares are held by the Enrique Rodriguez Management Trust, of which the Reporting Person is the trustee."
+   }
+  ],
+  "remarks": "The trading symbols for the Issuer's classes of common shares are LBTYA, LBTYB, and LBTYK.",
+  "ownerSignatureName": "/s/ Colton Lyons, Attorney-in-Fact",
+  "ownerSignatureNameDate": "2026-11-05"
+ },
+ {
+  "id": "5e1040272a4a6c19248afee5fa175ff5",
+  "accessionNo": "0001058725-26-000011",
+  "filedAt": "2026-11-05T09:20:04-05:00",
+  "schemaVersion": "X0609",
+  "documentType": "4",
+  "periodOfReport": "2026-11-04",
+  "notSubjectToSection16": false,
+  "aff10b5One": false,
+  "issuer": {
+   "cik": "1570585",
+   "name": "Liberty Global Ltd.",
+   "tradingSymbol": "LBTY"
+  },
+  "reportingOwner": {
+   "cik": "1058725",
+   "name": "FRIES MICHAEL T",
+   "address": {
+    "street1": "1550 WEWATTA STREET, STE 1000",
+    "city": "DENVER",
+    "state": "CO",
+    "zipCode": "80202"
+   },
+   "relationship": {
+    "isDirector": true,
+    "isOfficer": true,
+    "officerTitle": "President & CEO",
+    "isTenPercentOwner": false,
+    "isOther": false
+   }
+  },
+  "nonDerivativeTable": {
+   "transactions": [
+    {
+     "securityTitle": "Class A Common Shares",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "P",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 110000,
+      "pricePerShare": 9.3652,
+      "pricePerShareFootnoteId": [
+       "F1"
+      ],
+      "acquiredDisposedCode": "A"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 1238525
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    }
+   ],
+   "holdings": [
+    {
+     "securityTitle": "Class A Common Shares",
+     "coding": {},
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 8135
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "By 401(k) Plan"
+     }
+    },
+    {
+     "securityTitle": "Class C Common Shares",
+     "coding": {},
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 31299
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "By 401(k) Plan"
+     }
+    }
+   ]
+  },
+  "footnotes": [
+   {
+    "id": "F1",
+    "text": "The price reflects a weighted average of purchases made at prices ranging from $8.94 to $9.46. The Reporting Person undertakes to provide upon request by the staff of the Securities and Exchange Commission, the Issuer, or a security holder of the Issuer, information regarding the number of shares purchased at each separate price."
+   }
+  ],
+  "remarks": "The trading symbols for the Issuer's classes of common shares are LBTYA, LBTYB, and LBTYK.",
+  "ownerSignatureName": "/s/ Michael T. Fries",
+  "ownerSignatureNameDate": "2026-11-05"
+ },
+ {
+  "id": "e472df0dd992a196c365713f4f97a7c9",
+  "accessionNo": "0002093121-26-000009",
+  "filedAt": "2026-11-05T09:13:43-05:00",
+  "schemaVersion": "X0609",
+  "documentType": "4",
+  "periodOfReport": "2026-11-04",
+  "notSubjectToSection16": false,
+  "aff10b5One": true,
+  "issuer": {
+   "cik": "1866364",
+   "name": "Webull Corp",
+   "tradingSymbol": "BULL"
+  },
+  "reportingOwner": {
+   "cik": "2093121",
+   "name": "Denier Anthony Michael",
+   "address": {
+    "street1": "44 WALL STREET",
+    "street2": "2ND FLOOR",
+    "city": "NEW YORK",
+    "state": "NY",
+    "zipCode": "10005"
+   },
+   "relationship": {
+    "isDirector": true,
+    "isOfficer": true,
+    "officerTitle": "President",
+    "isTenPercentOwner": false,
+    "isOther": false
+   }
+  },
+  "nonDerivativeTable": {
+   "transactions": [
+    {
+     "securityTitle": "Class A Ordinary Shares",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "S",
+      "equitySwapInvolved": false,
+      "footnoteId": [
+       "F1"
+      ]
+     },
+     "amounts": {
+      "shares": 53846,
+      "pricePerShare": 5.3893,
+      "pricePerShareFootnoteId": [
+       "F2"
+      ],
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 2063065
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    }
+   ]
+  },
+  "footnotes": [
+   {
+    "id": "F1",
+    "text": "The transaction was effected pursuant to a Rule 10b5-1 trading plan adopted by the Reporting Person on May 26, 2026."
+   },
+   {
+    "id": "F2",
+    "text": "The price reported in Column 4 is a weighted average price. These shares were sold in multiple transactions at prices ranging from $5.2600 to $5.4650, inclusive. The Reporting Person undertakes to provide to the Issuer, any security holder of the Issuer, or the staff of the U.S. Securities and Exchange Commission, upon request, full information regarding the number of shares sold at each separate price within the ranges set forth in this footnote."
+   }
+  ],
+  "ownerSignatureName": "/s/ Liwei Cao, attorney-in-fact",
+  "ownerSignatureNameDate": "2026-11-05"
+ },
+ {
+  "id": "9fa2a03bed2437bd3b3e46c6e0d08148",
+  "accessionNo": "0000080424-26-000271",
+  "filedAt": "2026-11-05T09:03:41-05:00",
+  "schemaVersion": "X0609",
+  "documentType": "4",
+  "periodOfReport": "2026-11-04",
+  "notSubjectToSection16": false,
+  "aff10b5One": false,
+  "issuer": {
+   "cik": "80424",
+   "name": "PROCTER & GAMBLE Co",
+   "tradingSymbol": "PG"
+  },
+  "reportingOwner": {
+   "cik": "1844763",
+   "name": "Schulten Andre",
+   "address": {
+    "street1": "ONE PROCTER & GAMBLE PLAZA",
+    "city": "CINCINNATI",
+    "state": "OH",
+    "zipCode": "45202"
+   },
+   "relationship": {
+    "isDirector": false,
+    "isOfficer": true,
+    "officerTitle": "Chief Financial Officer",
+    "isTenPercentOwner": false,
+    "isOther": false
+   }
+  },
+  "nonDerivativeTable": {
+   "transactions": [
+    {
+     "securityTitle": "Common Stock",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "M",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 33624,
+      "pricePerShare": 91.07,
+      "acquiredDisposedCode": "A"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 99242.0097
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    },
+    {
+     "securityTitle": "Common Stock",
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "S",
+      "equitySwapInvolved": false
+     },
+     "amounts": {
+      "shares": 33624,
+      "pricePerShare": 165,
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 65618.0097
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    }
+   ],
+   "holdings": [
+    {
+     "securityTitle": "Common Stock",
+     "coding": {},
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 7604.419
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "I",
+      "natureOfOwnership": "By Retirement Plan Trustee"
+     }
+    }
+   ]
+  },
+  "derivativeTable": {
+   "transactions": [
+    {
+     "securityTitle": "Stock Option (Right to Buy)",
+     "conversionOrExercisePrice": 91.07,
+     "transactionDate": "2026-11-04",
+     "coding": {
+      "formType": "4",
+      "code": "M",
+      "equitySwapInvolved": false
+     },
+     "exerciseDate": "2020-02-28",
+     "expirationDate": "2027-02-26",
+     "underlyingSecurity": {
+      "title": "Common Stock",
+      "shares": 33624
+     },
+     "amounts": {
+      "shares": 33624,
+      "pricePerShare": 0,
+      "acquiredDisposedCode": "D"
+     },
+     "postTransactionAmounts": {
+      "sharesOwnedFollowingTransaction": 0
+     },
+     "ownershipNature": {
+      "directOrIndirectOwnership": "D"
+     }
+    }
+   ]
+  },
+  "ownerSignatureName": "/s/ Jennifer DollardSmith, attorney-in-fact for Andre Schulten",
+  "ownerSignatureNameDate": "2026-11-05"
+ }
+]
