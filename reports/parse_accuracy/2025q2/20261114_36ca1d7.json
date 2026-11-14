@@ -1,0 +1,256 @@
+{
+  "name": "parse_accuracy/2025q2",
+  "metadata": {
+    "git_sha": "36ca1d72f4274099c8cef510cfc86d66c4d6d08e",
+    "git_dirty": false,
+    "timestamp_utc": "2026-11-14T17:35:40+00:00",
+    "python": "3.11.14",
+    "dataset": "sec_insider_transactions_2025q2",
+    "dataset_sha256": "64e7f81328933b1281bd8737961048d76d2ab3d5d1d2d7149a32ec061b0e3ff2",
+    "seed": 0,
+    "sample_n": 1000,
+    "hard_n": 100,
+    "n_sampled": 1000,
+    "n_scored": 1000,
+    "n_fetch_failed": 0,
+    "n_skipped_max_fetch": 0,
+    "n_parser_errors": 0,
+    "http_requests": 0,
+    "official_rows_rejected_at_load": {
+      "NONDERIV_TRANS": 0,
+      "NONDERIV_HOLDING": 0,
+      "OWNER_SIGNATURE": 0,
+      "REPORTINGOWNER": 0,
+      "DERIV_HOLDING": 0,
+      "DERIV_TRANS": 0,
+      "SUBMISSION": 0,
+      "FOOTNOTES": 0
+    },
+    "cache_dir": "data/raw/edgar"
+  },
+  "metrics": {
+    "n_accessions": 1000,
+    "n_official_rows": 1599,
+    "n_parsed_rows": 1599,
+    "n_matched_rows": 1599,
+    "price_rounding_only": 86,
+    "shares_rounding_only": 12,
+    "parsed_accessions_not_in_official": 0,
+    "field_exact_match": {
+      "form_type": 1.0,
+      "issuer_cik": 1.0,
+      "issuer_ticker": 1.0,
+      "owner_ciks": 1.0,
+      "transaction_date": 1.0,
+      "code": 1.0,
+      "shares": 1.0,
+      "price_per_share": 1.0,
+      "acquired_disposed": 1.0,
+      "post_transaction_shares": 1.0,
+      "direct_indirect": 1.0,
+      "security_title": 1.0
+    },
+    "row_precision": 1.0,
+    "row_recall": 1.0,
+    "row_f1": 1.0,
+    "row_precision_strict": 1.0,
+    "row_recall_strict": 1.0,
+    "row_f1_strict": 1.0,
+    "filing_all_correct_rate": 1.0,
+    "net_flow": {
+      "n_tickers": 258,
+      "mae_usd": 35.22044289738163,
+      "median_abs_pct_err": 0.0,
+      "mean_abs_pct_err": 0.027473851133719057,
+      "share_tickers_exact": 0.5813953488372093,
+      "mae_usd_cent_rounded": 0.583872093023771,
+      "share_tickers_exact_cent_rounded": 0.9767441860465116
+    },
+    "amendments_4A": {
+      "n": 14,
+      "filing_exact_rate": 1.0,
+      "row_recall": 1.0
+    },
+    "joint_filers": {
+      "n": 15,
+      "filing_exact_rate": 1.0,
+      "row_recall": 1.0
+    },
+    "hard_cases": {
+      "n": 100,
+      "filing_exact_rate": 1.0,
+      "row_recall": 1.0
+    },
+    "random_cases": {
+      "n": 900,
+      "filing_exact_rate": 1.0,
+      "row_recall": 1.0
+    },
+    "n_mismatches": 0
+  },
+  "tables": {
+    "Summary": [
+      {
+        "metric": "n_accessions",
+        "value": 1000
+      },
+      {
+        "metric": "n_official_rows",
+        "value": 1599
+      },
+      {
+        "metric": "n_parsed_rows",
+        "value": 1599
+      },
+      {
+        "metric": "n_matched_rows",
+        "value": 1599
+      },
+      {
+        "metric": "row_precision",
+        "value": 1.0
+      },
+      {
+        "metric": "row_recall",
+        "value": 1.0
+      },
+      {
+        "metric": "row_f1",
+        "value": 1.0
+      },
+      {
+        "metric": "row_precision_strict",
+        "value": 1.0
+      },
+      {
+        "metric": "row_recall_strict",
+        "value": 1.0
+      },
+      {
+        "metric": "row_f1_strict",
+        "value": 1.0
+      },
+      {
+        "metric": "filing_all_correct_rate",
+        "value": 1.0
+      },
+      {
+        "metric": "price_rounding_only",
+        "value": 86
+      },
+      {
+        "metric": "shares_rounding_only",
+        "value": 12
+      }
+    ],
+    "Per-field exact match": [
+      {
+        "field": "form_type",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "issuer_cik",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "issuer_ticker",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "owner_ciks",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "transaction_date",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "code",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "shares",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "price_per_share",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "acquired_disposed",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "post_transaction_shares",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "direct_indirect",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "security_title",
+        "exact_match_rate": 1.0
+      }
+    ],
+    "Net open-market dollar flow error": [
+      {
+        "metric": "n_tickers",
+        "value": 258
+      },
+      {
+        "metric": "mae_usd",
+        "value": 35.22044289738163
+      },
+      {
+        "metric": "median_abs_pct_err",
+        "value": 0.0
+      },
+      {
+        "metric": "mean_abs_pct_err",
+        "value": 0.027473851133719057
+      },
+      {
+        "metric": "share_tickers_exact",
+        "value": 0.5813953488372093
+      },
+      {
+        "metric": "mae_usd_cent_rounded",
+        "value": 0.583872093023771
+      },
+      {
+        "metric": "share_tickers_exact_cent_rounded",
+        "value": 0.9767441860465116
+      }
+    ],
+    "Amendment / joint-filer handling": [
+      {
+        "subset": "4/A",
+        "n": 14,
+        "filing_exact_rate": 1.0,
+        "row_recall": 1.0
+      },
+      {
+        "subset": "joint filers",
+        "n": 15,
+        "filing_exact_rate": 1.0,
+        "row_recall": 1.0
+      },
+      {
+        "subset": "hard-case sample",
+        "n": 100,
+        "filing_exact_rate": 1.0,
+        "row_recall": 1.0
+      },
+      {
+        "subset": "random sample",
+        "n": 900,
+        "filing_exact_rate": 1.0,
+        "row_recall": 1.0
+      }
+    ],
+    "Mismatch categories": [],
+    "Mismatches (first 500)": []
+  },
+  "notes": "Official datasets derive from the same XML, so this measures parser fidelity, not filer truthfulness.\n\nSampled 1000 accessions; scored 1000. Excluded from scoring (NOT parser errors): 0 fetch failures, 0 not fetched because of --max-fetch.\n\nParser exceptions counted against the parser: 0."
+}
