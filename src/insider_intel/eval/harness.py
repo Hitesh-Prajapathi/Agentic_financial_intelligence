@@ -39,7 +39,8 @@ def _git(args: list[str], cwd: str | Path | None = None) -> str | None:
 
 def git_info(cwd: str | Path | None = None) -> dict:
     sha = _git(["rev-parse", "HEAD"], cwd)
-    dirty = _git(["status", "--porcelain"], cwd)
+    # dirty = tracked files differ from the commit; untracked outputs (reports/, notes) do not change the code
+    dirty = _git(["status", "--porcelain", "--untracked-files=no"], cwd)
     return {"git_sha": sha or "unknown", "git_dirty": bool(dirty) if dirty is not None else None}
 
 
