@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- RECONSTRUCTED: rebuilt in EDGAR ownershipDocument layout from the sec-api.io JSON of a real Form 4 (accession 0001058725-26-000011); values are real but this is NOT the byte-identical SEC original. Replace via fetch_fixtures.py. -->
+<ownershipDocument>
+<schemaVersion>X0609</schemaVersion>
+<documentType>4</documentType>
+<periodOfReport>2026-11-04</periodOfReport>
+<notSubjectToSection16>0</notSubjectToSection16>
+<aff10b5One>0</aff10b5One>
+<issuer><issuerCik>0001570585</issuerCik><issuerName>Liberty Global Ltd.</issuerName><issuerTradingSymbol>LBTY</issuerTradingSymbol></issuer>
+<reportingOwner><reportingOwnerId><rptOwnerCik>0001058725</rptOwnerCik><rptOwnerName>FRIES MICHAEL T</rptOwnerName></reportingOwnerId><reportingOwnerRelationship><isDirector>1</isDirector><isOfficer>1</isOfficer><isTenPercentOwner>0</isTenPercentOwner><isOther>0</isOther><officerTitle>President &amp; CEO</officerTitle></reportingOwnerRelationship></reportingOwner>
+<nonDerivativeTable>
+<nonDerivativeTransaction><securityTitle><value>Class A Common Shares</value></securityTitle><transactionDate><value>2026-11-04</value></transactionDate><transactionCoding><transactionFormType>4</transactionFormType><transactionCode>P</transactionCode><equitySwapInvolved>0</equitySwapInvolved></transactionCoding><transactionAmounts><transactionShares><value>110000</value></transactionShares><transactionPricePerShare><value>9.3652</value><footnoteId id="F1"/></transactionPricePerShare><transactionAcquiredDisposedCode><value>A</value></transactionAcquiredDisposedCode></transactionAmounts><postTransactionAmounts><sharesOwnedFollowingTransaction><value>1238525</value></sharesOwnedFollowingTransaction></postTransactionAmounts><ownershipNature><directOrIndirectOwnership><value>D</value></directOrIndirectOwnership></ownershipNature></nonDerivativeTransaction>
+<nonDerivativeHolding><securityTitle><value>Class A Common Shares</value></securityTitle><postTransactionAmounts><sharesOwnedFollowingTransaction><value>8135</value></sharesOwnedFollowingTransaction></postTransactionAmounts><ownershipNature><directOrIndirectOwnership><value>I</value></directOrIndirectOwnership><natureOfOwnership><value>By 401(k) Plan</value></natureOfOwnership></ownershipNature></nonDerivativeHolding>
+<nonDerivativeHolding><securityTitle><value>Class C Common Shares</value></securityTitle><postTransactionAmounts><sharesOwnedFollowingTransaction><value>31299</value></sharesOwnedFollowingTransaction></postTransactionAmounts><ownershipNature><directOrIndirectOwnership><value>I</value></directOrIndirectOwnership><natureOfOwnership><value>By 401(k) Plan</value></natureOfOwnership></ownershipNature></nonDerivativeHolding>
+</nonDerivativeTable>
+<footnotes><footnote id="F1">The price reflects a weighted average of purchases made at prices ranging from $8.94 to $9.46. The Reporting Person undertakes to provide upon request by the staff of the Securities and Exchange Commission, the Issuer, or a security holder of the Issuer, information regarding the number of shares purchased at each separate price.</footnote></footnotes>
+<remarks>The trading symbols for the Issuer's classes of common shares are LBTYA, LBTYB, and LBTYK.</remarks>
+<ownerSignature><signatureName>FRIES MICHAEL T</signatureName><signatureDate>2026-11-05</signatureDate></ownerSignature>
+</ownershipDocument>

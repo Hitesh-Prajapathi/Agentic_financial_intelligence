@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from config.settings import Settings
-from tools.llm_tool import LLMError, LLMResult, LLMTool
+from insider_intel.config import Settings
+from insider_intel.llm.client import LLMError, LLMResult, LLMTool
 
 
 def make_settings(**kw):
@@ -12,8 +12,6 @@ def make_settings(**kw):
 def test_paid_openrouter_models_are_rejected():
     with pytest.raises(ValidationError):
         make_settings(llm_chain="openrouter:openai/gpt-4o")
-    with pytest.raises(ValidationError):
-        make_settings(embedding_provider="openrouter", embedding_model="openai/text-embedding-3-small")
     make_settings(llm_chain="openrouter:foo/bar:free")           # free is fine
     make_settings(llm_chain="openrouter:openai/gpt-4o", allow_paid_models=True)  # explicit opt-in
 

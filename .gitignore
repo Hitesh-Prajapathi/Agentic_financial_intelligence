@@ -36,3 +36,6 @@ Screenshot*
 
 # Local model cache, test caches
 .pytest_cache/
+
+# Agent worktrees (local only)
+.claude/worktrees/

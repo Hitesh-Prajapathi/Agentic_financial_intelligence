@@ -1,0 +1,82 @@
+# Scheduled ingestion, twice a month (1st and 15th). Runs on GitHub's machines, never on a personal computer.
+# Each run ingests everything since the stored watermark, so a run covers ~2 weeks of filings.
+#
+# Flow: restore the previous DB snapshot -> run the pipeline (ingest from watermark, rank, gate, publish)
+#       -> export derived tables to Parquet -> publish DB + Parquet as a new GitHub Release.
+#
+# PENDING IMPLEMENTATION: `python -m insider_intel publish-snapshot --out snapshot/` does not exist yet
+# (planned in B4/P2: DuckDB `COPY ... TO` Parquet for derived tables). The step below assumes it will.
+# The pipeline also assumes the `run` command uses the EDGAR-native ingestion (in progress).
+#
+# GOTCHA: GitHub automatically disables scheduled workflows after 60 days without repository activity.
+# freshness.yml alerts on stale data; re-enable from the Actions tab or push a commit. The manual
+# "Run workflow" button (workflow_dispatch) always works.
+#
+# Secrets: SEC_USER_AGENT (required, e.g. "your-app-name your-email@example.com").
+# GROQ_API_KEY is not needed for ingestion.
+name: Ingest
+
+on:
+  schedule:
+    - cron: "30 23 1,15 * *"   # twice a month: the 1st and 15th at 23:30 UTC (after the US close)
+  workflow_dispatch:
+
+concurrency:
+  group: ingest
+  cancel-in-progress: false   # never overlap; let a running ingest finish
+
+permissions:
+  contents: write   # create releases
+  issues: write     # failure alerts
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180   # each run catches up ~2 weeks of Form 4s (~10-15k filings at <=8 req/s)
+    env:
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      GH_TOKEN: ${{ github.token }}
+      LIVE_DB_PATH: ./data/live.duckdb
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Require SEC_USER_AGENT
+        run: |
+          if [ -z "$SEC_USER_AGENT" ]; then echo "::error::SEC_USER_AGENT secret is not set"; exit 1; fi
+      - name: Restore previous snapshot
+        run: |
+          mkdir -p data
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern 'live.duckdb' --dir data \
+            || echo "No previous snapshot (first run)"
+      - name: Run pipeline
+        run: python -m insider_intel run
+      - name: Export Parquet snapshot
+        run: python -m insider_intel publish-snapshot --out snapshot/
+      - name: Publish release
+        run: |
+          TAG="data-$(date -u +%Y%m%d-%H%M)"
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Data snapshot $TAG" \
+            --notes "Automated snapshot from run ${{ github.run_id }}." \
+            data/live.duckdb snapshot/*
+      - name: Alert on failure
+        if: failure()
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          gh label create pipeline-failure --color B60205 --description "Scheduled ingest failed" --force
+          N=$(gh issue list --label pipeline-failure --state open --json number --jq '.[0].number // empty')
+          if [ -n "$N" ]; then
+            gh issue comment "$N" --body "Ingest failed again: $RUN_URL"
+          else
+            gh issue create --label pipeline-failure --title "Scheduled ingest failed" \
+              --body "The scheduled ingest failed: $RUN_URL"
+          fi

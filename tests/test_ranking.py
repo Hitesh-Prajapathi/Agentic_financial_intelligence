@@ -1,6 +1,6 @@
 import pandas as pd
 
-from agents.symbolic_validation import compute_checksum, validate_and_rank
+from insider_intel.pipeline.rank import compute_checksum, validate_and_rank
 
 
 def row(acc, tk="AAA", code="P", shares=1000, price=10.0, name="Ann", idx=0, ad=None, date="2026-11-04", **kw):
@@ -33,6 +33,16 @@ def test_joint_filer_duplicates_counted_once():
     df, _, stats = rank(rows)
     assert df.iloc[0].buy_value == 10_000 and stats["dropped_joint_dups"] == 1
     assert stats["notional_kept"] + stats["notional_dups"] == stats["notional_valid"]
+
+
+def test_joint_filer_dedup_uses_issuer_and_owner_ciks():
+    same = [row("1", name="Fund LP", issuer_cik="9", owner_ciks="10|11"), row("2", name="Fund GP", issuer_cik="9", owner_ciks="10|11")]
+    df, _, stats = rank(same)
+    assert df.iloc[0].buy_value == 10_000 and stats["dropped_joint_dups"] == 1
+    # identical trade but a different owner-CIK set (two unrelated insiders) is NOT a duplicate
+    diff = [row("1", name="Ann", issuer_cik="9", owner_ciks="10"), row("2", name="Bob", issuer_cik="9", owner_ciks="12")]
+    df, _, stats = rank(diff)
+    assert df.iloc[0].buy_value == 20_000 and stats["dropped_joint_dups"] == 0
 
 
 def test_different_trades_are_not_collapsed():

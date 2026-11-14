@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!-- SYNTHETIC fixture: hand-built from the documented ownershipDocument structure; fictional company, people, CIKs and accession. Not a real SEC filing. -->
+<ownershipDocument>
+<schemaVersion>X0609</schemaVersion>
+<documentType>4/A</documentType>
+<periodOfReport>2026-03-10</periodOfReport>
+<dateOfOriginalSubmission>2026-03-12</dateOfOriginalSubmission>
+<notSubjectToSection16>0</notSubjectToSection16>
+<aff10b5One>0</aff10b5One>
+<issuer><issuerCik>0009000001</issuerCik><issuerName>Acme Widgets Inc</issuerName><issuerTradingSymbol>ACME</issuerTradingSymbol></issuer>
+<reportingOwner><reportingOwnerId><rptOwnerCik>0009100002</rptOwnerCik><rptOwnerName>Roe Richard</rptOwnerName></reportingOwnerId><reportingOwnerAddress><rptOwnerStreet1>1 Example Way</rptOwnerStreet1><rptOwnerCity>Springfield</rptOwnerCity><rptOwnerState>XX</rptOwnerState><rptOwnerZipCode>00000</rptOwnerZipCode></reportingOwnerAddress><reportingOwnerRelationship><isDirector>1</isDirector><isOfficer>0</isOfficer><isTenPercentOwner>0</isTenPercentOwner><isOther>0</isOther></reportingOwnerRelationship></reportingOwner>
+<nonDerivativeTable>
+<nonDerivativeTransaction><securityTitle><value>Common Stock</value></securityTitle><transactionDate><value>2026-03-10</value></transactionDate><transactionCoding><transactionFormType>4</transactionFormType><transactionCode>S</transactionCode><equitySwapInvolved>0</equitySwapInvolved></transactionCoding><transactionAmounts><transactionShares><value>500</value></transactionShares><transactionPricePerShare><value>14.0</value></transactionPricePerShare><transactionAcquiredDisposedCode><value>D</value></transactionAcquiredDisposedCode></transactionAmounts><postTransactionAmounts><sharesOwnedFollowingTransaction><value>20000</value></sharesOwnedFollowingTransaction></postTransactionAmounts><ownershipNature><directOrIndirectOwnership><value>D</value></directOrIndirectOwnership></ownershipNature></nonDerivativeTransaction>
+</nonDerivativeTable>
+<remarks>Amendment to correct the number of shares sold.</remarks>
+<ownerSignature><signatureName>Roe Richard</signatureName><signatureDate>2026-03-12</signatureDate></ownerSignature>
+</ownershipDocument>

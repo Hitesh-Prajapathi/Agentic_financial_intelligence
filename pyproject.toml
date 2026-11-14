@@ -1,9 +1,55 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "insider-trading-intelligence"
-version = "2.0.0"
-description = "SEC Form 4 insider-trade intelligence with social sentiment, a governed pipeline and a grounded chat assistant"
+version = "3.0.0.dev0"
+description = "SEC Form 4 insider-trade intelligence: a governed ranking pipeline and a grounded chat assistant"
+readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+    "streamlit>=1.55,<2",
+    "duckdb>=2.0,<3",
+    "pandas>=2.3,<3",
+    "numpy>=1.26,<2",
+    "plotly>=6,<8",
+    "httpx>=0.28,<1",
+    "pydantic>=2.12,<3",
+    "pydantic-settings>=2.10,<3",
+    "python-dotenv>=1.0,<2",
+]
+
+[project.optional-dependencies]
+eval = ["statsmodels>=0.14", "scikit-learn>=1.4"]
+dev = ["pytest>=8", "pytest-cov>=5", "hypothesis>=6", "ruff>=0.6", "pip-audit>=2.7"]
+
+[project.scripts]
+insider-intel = "insider_intel.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+insider_intel = ["store/migrations/*.sql", "llm/prompts/*.txt"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests", "app"]
+extend-exclude = [".claude", "data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = [
+    "E501",  # long lines are left to `ruff format`; a few SQL/prompt strings are intentionally wide
+    "B905",  # zip() without strict=
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["insider_intel"]

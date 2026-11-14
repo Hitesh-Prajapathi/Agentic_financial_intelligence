@@ -1,0 +1,8 @@
+{
+  "_comment": "Recorded minimums for `python -m insider_intel.eval parse-accuracy-offline`; the command exits non-zero if any value drops below. Raise only deliberately (fixtures are reconstructed/synthetic, see tests/edgar/fixtures/README.md).",
+  "n_accessions": 15,
+  "n_official_rows": 30,
+  "row_f1_strict": 1.0,
+  "filing_all_correct_rate": 1.0,
+  "min_field_exact_match": 1.0
+}
