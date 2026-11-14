@@ -4,7 +4,7 @@
 > the runner code (parameters, decision rules, Holm families, sample range). Nothing here has been run on real
 > data yet. Do not change it after the commit below; any deviation goes into section 10 as a dated amendment.
 
-**Pre-registration commit: <filled in by user>**
+**Pre-registration commit: 864a0a23b7ad7857c323180521d11eecd8a35527**
 
 Code: `src/insider_intel/market/prices.py`, `src/insider_intel/market/event_study.py`, plus the historical
 runner `src/insider_intel/eval/event_study_run.py` (`python -m insider_intel.eval event-study`; it refuses to run
