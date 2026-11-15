@@ -1,6 +1,6 @@
 # Architecture (v3)
 
-This describes the v3 target. Items marked *(in progress)* are specified in `REFINEMENT_EXECUTION_PLAN.md` but not yet in the code.
+This describes the v3 system as built.
 
 ```mermaid
 flowchart LR
@@ -20,7 +20,7 @@ flowchart LR
   PUB --> SNAP[("Release asset\nlive.duckdb + Parquet")]
   subgraph READ["Read side (read-only DB)"]
     UI["Streamlit\nDashboard, Chat, Evaluation, Health"]
-    AGENT["Chat agent (in progress)\nLLM + typed parameterized SQL tools"]
+    AGENT["Chat agent\nLLM + typed parameterized SQL tools"]
     GROUND["Citation + numeric grounding check"]
     UI --> AGENT --> GROUND
   end
@@ -62,8 +62,8 @@ data is refreshed about twice a month (scheduled ingest on the 1st and 15th, fre
 Target model (plan B1, B4, B6, P3), not all present yet:
 
 - **Raw** (immutable facts from Form 4 XML): filings (with `accepted_at`), owners, transactions (all codes), footnotes.
-- **Derived** (rebuilt each run): rankings (`top_trades`), `pipeline_runs`, `llm_calls` *(in progress)*, `query_log`.
-- **Graph**: `insider_edges`, one row per (owner CIK, issuer CIK) with role flags and totals *(in progress)*, see ADR-0004.
+- **Derived** (rebuilt each run): rankings (`top_trades`), `pipeline_runs`, `llm_calls`, `query_log`.
+- **Graph**: `insider_edges`, one row per (owner CIK, issuer CIK) with role flags and totals, see ADR-0004.
 - `schema_version` plus numbered migrations (`001_init` .. `004_llm_calls`), applied automatically on a read/write open; `python -m insider_intel migrate` upgrades the live database explicitly.
 - `llm_calls`: one row per provider call (latency, tokens, status, notional list-price cost estimate; free-tier models are what is actually used).
 
@@ -74,7 +74,7 @@ Target model (plan B1, B4, B6, P3), not all present yet:
    per-ticker bounds, ranking arithmetic and order, checksum) must all pass; otherwise the run is quarantined and the
    previous published ranking stays in place.
 3. **Grounding.** Chat answers must cite source IDs that exist in the evidence. Numeric grounding (every number in an
-   answer matches a tool output) and abstention on empty results are part of the new agent *(in progress)*.
+   answer matches a tool output) and abstention on empty results are part of the new agent.
 4. **Untrusted text.** Posts and filing text are data, never instructions. The chat tools are read-only and parameterized.
 5. **Not investment advice**, and the system does not detect illegal trading.
 

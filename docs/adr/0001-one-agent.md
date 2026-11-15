@@ -15,7 +15,7 @@ turn, pydantic-validated arguments, tool errors returned to the model). Ingestio
 fixed control flow and are plain functions (`ingest()`, `rank()`, `gate()`, `publish()`). Chart generation is a plain
 function used by the dashboard.
 
-The tool-calling chat agent is *(in progress)*; today's chat uses context stuffing with a citation check.
+The tool-calling chat agent is implemented (`chat/agent.py`); the earlier context-stuffing path remains as a degraded fallback (`chat/degraded.py`).
 
 ## Consequences
 - Less code, no background-thread orchestration, deterministic stages that are easy to test.

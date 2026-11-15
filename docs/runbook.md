@@ -21,7 +21,7 @@ The pipeline never runs on a schedule locally; it runs only when you trigger it.
 
 | Variable | Needed for | Notes |
 |---|---|---|
-| `SEC_USER_AGENT` | EDGAR ingestion (in progress) | Identifies you to the SEC, format `your-app-name your-email@example.com`. Never commit it. Startup fails without it. |
+| `SEC_USER_AGENT` | EDGAR ingestion | Identifies you to the SEC, format `your-app-name your-email@example.com`. Never commit it. Startup fails without it. |
 | `GROQ_API_KEY` | Chat (primary LLM) | Not needed for ingestion, CI or the dashboard. |
 | `OPENROUTER_API_KEY` | Chat fallback | Only `:free` models are allowed. |
 | `SEC_API_KEY` | Legacy sec-api.io path | Goes away when EDGAR ingestion replaces it. |
@@ -46,13 +46,12 @@ Copy `.env.example` to `.env` for local use. In GitHub, add `SEC_USER_AGENT` und
 
 1. Open the issue and the linked Actions run to see the error.
 2. Fix the cause (or wait out an SEC outage), then Actions, Ingest, "Run workflow".
-3. Ingestion resumes from the stored watermark *(in progress)*, so a missed day leaves no gap. Locally: `make run`.
+3. Ingestion resumes from the stored watermark, so a missed day leaves no gap. Locally: `make run`.
 4. Close the issue once the run succeeds.
 
 ## Backfill
 
-Backfill from the EDGAR daily index for a date range using the EDGAR module *(in progress; a CLI flag such as
-`--since YYYY-MM-DD` is pending)*. Raw XML is cached under `data/raw/edgar/`, so re-parsing does not refetch. Keep to
+Backfill from the EDGAR daily index for a date range with `python -m insider_intel run --since YYYY-MM-DD`. Raw XML is cached under `data/raw/edgar/`, so re-parsing does not refetch. Keep to
 the SEC rate limit (the client enforces at most 8 requests/s).
 
 ## Reading quarantine reasons

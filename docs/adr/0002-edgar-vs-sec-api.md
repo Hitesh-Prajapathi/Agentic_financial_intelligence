@@ -14,7 +14,7 @@ to at most 8 requests/s (SEC limit is 10), backs off on 429/503, and caches ever
 parser uses stdlib `xml.etree` into pydantic models, stores all transaction codes, all joint owners, footnotes and the
 acceptance timestamp (`accepted_at`), and ingestion runs from a stored watermark with upsert by accession.
 
-The `edgar/` module exists; wiring it into `pipeline/ingest.py` in place of sec-api.io is *(in progress)*.
+The `edgar/` module is wired into `pipeline/ingest.py`; sec-api.io has been removed.
 
 ## Consequences
 - No API key, official source, history available for evaluation and event study.

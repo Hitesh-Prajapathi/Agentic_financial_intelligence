@@ -18,7 +18,7 @@ v2 indexed five text blocks (themselves generated from SQL rows) into LightRAG. 
 Remove LightRAG (and fastembed) from the product path. Build the insider network deterministically from Form 4 CIKs:
 nodes are owner CIK and issuer CIK; an `insider_edges` row per (owner, issuer) holds role flags, first/last filing and
 P/S totals. Query it with SQL and recursive CTEs; expose chat tools `insider_network(owner)` and
-`co_insiders(issuer, window)`. The table and tools are *(in progress)*. LightRAG may return only as an optional,
+`co_insiders(issuer, window)`. The table and tools are implemented (`store/graph.py`, `chat/tools.py`). LightRAG may return only as an optional,
 subset-sized arm of a 10-K retrieval evaluation.
 
 ## Consequences
