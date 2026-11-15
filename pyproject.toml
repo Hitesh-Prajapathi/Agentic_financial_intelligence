@@ -13,6 +13,7 @@ dependencies = [
     "duckdb>=2.0,<3",
     "pandas>=2.3,<3",
     "numpy>=1.26,<2",
+    "pyarrow>=14,<24",  # pyarrow 24+ needs NumPy 2; streamlit imports it
     "plotly>=6,<8",
     "httpx>=0.28,<1",
     "pydantic>=2.12,<3",
