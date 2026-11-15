@@ -217,6 +217,10 @@ class YahooChartProvider(PriceProvider):
             raise ProviderBlocked("yahoo HTTP 429 (rate limited)")
         if r.status_code == 404:
             return empty_prices()
+        if r.status_code == 400 and "doesn't exist" in r.text:
+            # Yahoo's definitive "no data for this symbol/range" (typical for delisted tickers):
+            # treat like 404 so it is cached as missing, not retried as a transient error.
+            return empty_prices()
         if r.status_code != 200:
             raise ProviderError(f"yahoo HTTP {r.status_code}")
         try:

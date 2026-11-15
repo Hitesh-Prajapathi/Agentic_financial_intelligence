@@ -189,3 +189,28 @@ def test_cache_rate_limit_enforced(tmp_path):
     )
     c.get_many(["AAA", "BBB", "CCC"], "2024-01-02", "2024-01-15")
     assert len(sleeps) == 2 and all(s == pytest.approx(0.5) for s in sleeps)
+
+
+def test_yahoo_400_data_doesnt_exist_is_empty_not_error():
+    import httpx
+
+    from insider_intel.market.prices import YahooChartProvider
+
+    body = {
+        "chart": {
+            "result": None,
+            "error": {"code": "Bad Request", "description": "Data doesn't exist for startDate = 1, endDate = 2"},
+        }
+    }
+    client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(400, json=body)))
+    assert YahooChartProvider(client=client).daily("CSRA", "2016-01-01", "2016-12-31").empty
+
+
+def test_yahoo_other_400_is_still_an_error():
+    import httpx
+
+    from insider_intel.market.prices import YahooChartProvider
+
+    client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(400, text="bad symbol")))
+    with pytest.raises(ProviderError):
+        YahooChartProvider(client=client).daily("X", "2016-01-01", "2016-12-31")
