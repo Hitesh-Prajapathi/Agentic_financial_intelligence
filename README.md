@@ -16,7 +16,7 @@ git commit and dataset hashes that produced it. Runs on free-tier LLMs only.
 | **Form 4 parser vs SEC's official dataset, 2025 Q3** (1,000 random filings, 1,711 transaction rows) | **100%** row precision / recall, 100% of filings fully correct | [`reports/parse_accuracy/2025q3`](reports/parse_accuracy/2025q3/latest.md) |
 | **Same, held-out 2025 Q2** (1,000 filings, 1,599 rows; scorer frozen after Q3) | **100%** | [`reports/parse_accuracy/2025q2`](reports/parse_accuracy/2025q2/latest.md) |
 | Parser vs hand-checked test fixtures | 100% field-level exact match | [`reports/parse_accuracy_fixtures`](reports/parse_accuracy_fixtures/latest.md) |
-| **Event study** (pre-registered): do insider buys predict abnormal returns? 2016 Q2 – 2026 Q1 | *pending — see below* | `reports/event_study` |
+| **Event study** (pre-registered): do insider buys predict abnormal returns? 2016 Q2 – 2026 Q1 | H1 cluster buys **+2.09%** CAR[0,+20], H2 CEO/CFO buys **+2.33%** (both supported, Holm p < 1e-29); H3 sells: **no difference** | [`reports/event_study`](reports/event_study/latest.md) |
 | Test suite | 438 tests, offline (network blocked in tests) | `make test` |
 
 **How to read the parse-accuracy result.** The ground truth is the SEC's own
@@ -28,12 +28,30 @@ decimals (rounding-only differences are counted separately: 123 prices and 13 sh
 tickers like `NONE`/`N/A`/`-`, and quotes some security titles. One real parser bug was found and fixed (`NA` and
 `-` tickers).
 
-<!-- EVENT_STUDY_RESULTS -->
-**Event study.** The design was registered before any real data was run
-([`docs/event_study_prereg.md`](docs/event_study_prereg.md), commit `864a0a2`): three primary hypotheses tested at 5%
-with Holm correction — H1 cluster buys, H2 CEO/CFO buys, H3 discretionary vs 10b5-1-planned sells — using a market
-model, CAR over [0, +20] trading days, BMP and Welch tests, bootstrap CIs and calendar-time Fama-French alphas. The
-runner refuses any other sample range. Results will be reported here whatever they show, including null results.
+**Event study (confirmatory).** The design was registered before any real data was run
+([`docs/event_study_prereg.md`](docs/event_study_prereg.md), commit `864a0a2`), and the runner refuses any other
+sample range. Sample: every open-market Form 4 trade in the SEC datasets 2016 Q2 – 2026 Q1 (1.14M transaction rows,
+534k filings). Market model against SPY, estimation window [-250, -30]; day 0 is the first session after the filing
+date; CAR over [0, +20] trading days; Holm correction across the three primary hypotheses.
+
+| Hypothesis | n events | Mean CAR [0,+20] | 95% bootstrap CI | Holm p | Verdict |
+|---|---|---|---|---|---|
+| H1 cluster buys (≥2 insiders within 30 days) | 14,764 | +2.09% | +1.61% to +2.51% | ≈1e-34 (BMP) | supported |
+| H2 CEO/CFO open-market buys | 11,206 | +2.33% | +1.82% to +2.84% | ≈3e-30 (BMP) | supported |
+| H3 discretionary vs 10b5-1 planned sells | 19,585 vs 12,731 | −1.38% vs −1.46% | | 0.68 (Welch) | not supported |
+
+Market-adjusted returns give the same signs (+1.98%, +2.58%). What limits these numbers:
+
+* **Pre-event drift.** Prices fall before insider buys (CAR[-20,-1] −2.5% for cluster buys, −3.8% for CEO/CFO buys,
+  both significant). Insiders tend to buy after declines, so part of the post-filing return may be a rebound rather
+  than information.
+* **Calendar-time Fama-French alpha (S5) is missing** for this run: the Ken French factor download failed, so the
+  check for events clustering in the same weeks was not done.
+* **Survivorship.** Only 68% of tickers had prices (Yahoo has no data for many delisted companies); 30–34% of buy
+  events were dropped, every reason counted in the report.
+* **H3 covers mid-2023 onward only**, because the SEC's 10b5-1 checkbox exists only from 2023 Q2.
+* Single-insider and large buys have high means driven by outliers (cross-sectional t not significant); see the
+  secondary tables.
 
 ## How it works
 
