@@ -140,3 +140,7 @@ datasets/                  golden sets and expected fixture outputs
 reports/                   generated evaluation reports (committed)
 tests/                     pytest suite (offline)
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE).
