@@ -1,70 +1,146 @@
 # SEC Insider Trading Intelligence
 
-Finds the most significant **insider trades** in the last 24 hours from SEC Form 4 filings, adds **social-media sentiment**
-for those tickers, and lets you question the results through a **grounded chat assistant** that cites its sources.
-Runs entirely on **free-tier** LLMs.
+Pulls SEC Form 4 insider-trading filings straight from EDGAR, ranks recent open-market insider buying and selling with
+a deterministic, auditable method, blocks publication when integrity checks fail, and lets you question the data
+through a tool-calling chat agent whose citations and numbers are checked against the database.
+
+Every headline number below is produced by a script in this repo and saved in [`reports/`](reports/) together with the
+git commit and dataset hashes that produced it. Runs on free-tier LLMs only.
+
+> Informational and educational. **Not investment advice.** It does not detect or allege illegal insider trading.
+
+## Results
+
+| What was measured | Result | Report |
+|---|---|---|
+| **Form 4 parser vs SEC's official dataset, 2025 Q3** (1,000 random filings, 1,711 transaction rows) | **100%** row precision / recall, 100% of filings fully correct | [`reports/parse_accuracy/2025q3`](reports/parse_accuracy/2025q3/latest.md) |
+| **Same, held-out 2025 Q2** (1,000 filings, 1,599 rows; scorer frozen after Q3) | **100%** | [`reports/parse_accuracy/2025q2`](reports/parse_accuracy/2025q2/latest.md) |
+| Parser vs hand-checked test fixtures | 100% field-level exact match | [`reports/parse_accuracy_fixtures`](reports/parse_accuracy_fixtures/latest.md) |
+| **Event study** (pre-registered): do insider buys predict abnormal returns? 2016 Q2 – 2026 Q1 | H1 cluster buys **+2.09%** CAR[0,+20], H2 CEO/CFO buys **+2.33%** (both supported, Holm p < 1e-29); H3 sells: **no difference** | [`reports/event_study`](reports/event_study/latest.md) |
+| Test suite | 438 tests, offline (network blocked in tests) | `make test` |
+
+**How to read the parse-accuracy result.** The ground truth is the SEC's own
+[Insider Transactions Data Sets](https://www.sec.gov/data-research/sec-markets-data/insider-transactions-data-sets).
+They are derived from the same XML filings, so 100% means the parser reads the XML exactly as the SEC does; it is a
+test of parser fidelity, not of whether the filings themselves are true. Getting there needed four documented scorer
+fixes, all found on Q3 and then frozen before scoring Q2: the SEC dataset rounds prices and share counts to 2
+decimals (rounding-only differences are counted separately: 123 prices and 13 share counts in Q3), uses placeholder
+tickers like `NONE`/`N/A`/`-`, and quotes some security titles. One real parser bug was found and fixed (`NA` and
+`-` tickers).
+
+**Event study (confirmatory).** The design was registered before any real data was run
+([`docs/event_study_prereg.md`](docs/event_study_prereg.md), commit `864a0a2`), and the runner refuses any other
+sample range. Sample: every open-market Form 4 trade in the SEC datasets 2016 Q2 – 2026 Q1 (1.14M transaction rows,
+534k filings). Market model against SPY, estimation window [-250, -30]; day 0 is the first session after the filing
+date; CAR over [0, +20] trading days; Holm correction across the three primary hypotheses.
+
+| Hypothesis | n events | Mean CAR [0,+20] | 95% bootstrap CI | Holm p | Verdict |
+|---|---|---|---|---|---|
+| H1 cluster buys (≥2 insiders within 30 days) | 14,764 | +2.09% | +1.61% to +2.51% | ≈1e-34 (BMP) | supported |
+| H2 CEO/CFO open-market buys | 11,206 | +2.33% | +1.82% to +2.84% | ≈3e-30 (BMP) | supported |
+| H3 discretionary vs 10b5-1 planned sells | 19,585 vs 12,731 | −1.38% vs −1.46% | | 0.68 (Welch) | not supported |
+
+Market-adjusted returns give the same signs (+1.98%, +2.58%). What limits these numbers:
+
+* **Pre-event drift.** Prices fall before insider buys (CAR[-20,-1] −2.5% for cluster buys, −3.8% for CEO/CFO buys,
+  both significant). Insiders tend to buy after declines, so part of the post-filing return may be a rebound rather
+  than information.
+* **Calendar-time Fama-French alpha (S5) is missing** for this run: the Ken French factor download failed, so the
+  check for events clustering in the same weeks was not done.
+* **Survivorship.** Only 68% of tickers had prices (Yahoo has no data for many delisted companies); 30–34% of buy
+  events were dropped, every reason counted in the report.
+* **H3 covers mid-2023 onward only**, because the SEC's 10b5-1 checkbox exists only from 2023 Q2.
+* Single-insider and large buys have high means driven by outliers (cross-sectional t not significant); see the
+  secondary tables.
+
+## How it works
 
 ```
-SEC Form 4 ──► rank (deterministic) ──► GOVERNANCE GATE ──► tweets (Apify) ──► sentiment (LLM) ──► LightRAG index ──► learning loop
-                                              │ fail → quarantine (nothing published, no API spend)
-Chat: question ──► SQL facts (+ optional LightRAG graph context) ──► streamed, cited answer
+SEC EDGAR (daily index + Form 4 XML)
+   │  polite client: declared User-Agent, ≤8 req/s, retries, write-once raw cache
+   ▼
+Form 4 parser (stdlib XML → pydantic) ──► DuckDB raw tables (filings, owners, transactions, footnotes)
+   ▼
+Ranking (pandas, deterministic, no LLM) ──► Governance gate (5 independent checks)
+                                              ├─ pass → publish ranking + insider graph + snapshot
+                                              └─ fail → quarantine, nothing published
+   ▼
+Streamlit app (read-only DB)  ──►  chat agent ──► 8 typed SQL tools ──► grounding check on the answer
 ```
 
-## What it does
-
-| Stage | What happens |
+| Part | What it does |
 |---|---|
-| **SEC ingestion** | Pulls open-market buys/sells (Form 4 codes **P** / **S**) from sec-api.io, newest first, paginated, incremental. |
-| **Ranking** | Net dollar flow per ticker, with secondary signals: number of insiders (**cluster** buying/selling), officer/director role, trade size vs. the insider's position, and share of the trade under a pre-scheduled **10b5-1 plan**. Joint-filer double reports are removed. No LLM involved. |
-| **Governance gate** | Five independent integrity checks (ingest reconciliation, notional reconciliation via a separate SQL path, per-ticker bounds, ranking arithmetic/order, checksum). Any failure → run is **quarantined**: the ranking is never published and no money is spent on tweets/LLMs. |
-| **Tweets** | Apify scraper for the ranked tickers; parallel, cached, budget-capped; retweets/spam/non-English dropped. |
-| **Sentiment** | Free-model LLM chain classifies tweets (bullish/bearish/neutral); strict output validation; unlabelled stays unlabelled. |
-| **LightRAG** (switchable) | Each run's trades + sentiment are indexed into a knowledge graph; chat adds graph context to the SQL facts. Toggle in the sidebar or `ENABLE_LIGHTRAG`. |
-| **Learning loop** | Only after the gate passes: low-confidence labels get a second opinion from a different model (disagreement → neutral), agreed labels become few-shot examples, quality metrics are tracked (Health tab). |
-| **Chat** | Answers only from retrieved evidence, cites `[RANK …]`/`[SEC Form 4 …]`/`[SENT …]` tags that are verified against the evidence, shows a confidence badge, streams tokens, accepts 👍/👎. Chart requests bypass the LLM and render interactive Plotly charts. |
+| **Ingestion** (`edgar/`, `pipeline/ingest.py`) | Discovers Form 4s from EDGAR's daily index, fetches one full-submission `.txt` per filing, resumes from a watermark. Amendments (4/A) mark the filings they replace as superseded. No paid data API. |
+| **Ranking** (`pipeline/rank.py`) | Net dollar flow per company from open-market buys (`P`) and sells (`S`) over a 14-day window, with secondary signals: number of distinct insiders (clusters), officer/director role, trade size vs. holdings, share under pre-scheduled 10b5-1 plans. Removes joint-filer double counting. Output has a SHA-256 checksum. |
+| **Governance gate** (`pipeline/gate.py`) | Ingest reconciliation, notional reconciliation via a second independent SQL path, per-ticker bounds, ranking arithmetic and order, checksum. Any failure quarantines the run. |
+| **Insider graph** (`store/graph.py`) | Who-sits-with-whom edges built deterministically from SEC identifiers (CIKs). No LLM, no entity guessing. |
+| **Chat agent** (`chat/`) | One LLM agent with a tool loop (≤4 rounds) over 8 typed, parameterized, read-only SQL tools: `top_trades`, `filings_for`, `insider_history`, `cluster_events`, `insider_network`, `co_insiders`, `sentiment`, `data_status`. Falls back to a no-tools mode if tool calling fails. |
+| **Grounding** (`chat/grounding.py`) | Every citation tag must match a source returned by this turn's tools; every number in the answer must appear in the tool outputs (within rounding); fact-stating answers over empty results are flagged. Known limits are documented in the module. |
+| **LLMs** (`llm/`) | Groq `openai/gpt-oss-120b` primary, OpenRouter `:free` models as fallback. Paid models are rejected at startup. Every call is logged to an `llm_calls` table (tokens, latency, provider). |
+| **Evaluation** (`eval/`, `market/`) | Shared harness that stamps every report with git SHA, dirty flag, dataset hashes and seed; SEC dataset loader; parse-accuracy scorer; event-study engine with a Yahoo price cache and Ken French factors. |
+
+Design decisions are written up as ADRs in [`docs/adr/`](docs/adr/), for example why there is only one agent, why
+EDGAR instead of a paid API, and why the earlier LightRAG knowledge graph was removed.
 
 ## Run it
 
 ```bash
 conda activate ai                      # Python 3.11
-pip install -r requirements.txt
-cp .env.example .env                   # then fill in your keys
-python scripts/check_keys.py           # one tiny live call per service
-streamlit run app.py
+pip install -e ".[dev]"
+cp .env.example .env                   # set SEC_USER_AGENT ("Name contact@example.com") and LLM keys
+make check-keys                        # one tiny live call per service
+make app                               # Streamlit: Chat · Dashboard · Pipeline · Health
 ```
 
-* **Refresh data** (sidebar) runs the pipeline in the background; you can keep chatting. Nothing runs on a schedule — it only runs when you click.
-* **Demo mode** switches to a separate database of *fictional* companies, so you can try everything without API keys. Your live data is never touched.
-* CLI: `python scripts/run_pipeline.py` · tests: `pip install -r requirements-dev.txt && pytest`
+* **Demo mode** uses a separate database of fictional companies, so the app works without any keys
+  (`python -m insider_intel seed-demo`).
+* **Live data:** `python -m insider_intel run` ingests recent filings, ranks, gates and publishes to `data/live.duckdb`.
+  A GitHub Actions workflow runs it on the 1st and 15th of each month; a freshness check alerts if data goes stale.
+* **Reproduce the evaluations:**
 
-## Keys & cost (all free tiers)
+```bash
+python -m insider_intel.eval parse-accuracy --year 2025 --quarter 3 --yes   # downloads the SEC quarter zip + 1,000 filings
+python -m insider_intel.eval parse-accuracy-offline                         # fixtures only, no network
+python -m insider_intel.eval event-study --yes                              # 40 quarters + daily prices; long
+make test                                                                    # 438 tests, no network
+make lint                                                                    # ruff
+```
 
-| Service | Used for | Notes |
+## Keys and cost
+
+| Service | Used for | Cost |
 |---|---|---|
-| sec-api.io | Form 4 data | free tier is enough |
-| Groq | primary LLM (`gpt-oss-120b`, ~1 s) | ~1000 requests/day free |
-| OpenRouter | fallback LLMs, **`:free` models only** | ~50 free requests/day; paid models are rejected at startup unless `ALLOW_PAID_MODELS=true` |
-| Apify | tweets | pay-per-tweet ($0.0004). A budget cap (`APIFY_MONTHLY_BUDGET_USD`, default $2) is checked before every scrape. **Apify also bills runs that return nothing.** |
+| SEC EDGAR | filings, official datasets | free; SEC requires a User-Agent with contact info |
+| Groq | primary LLM | free tier (~1,000 requests/day) |
+| OpenRouter | fallback LLMs, `:free` models only | free |
+| Yahoo chart endpoint, Ken French library | event-study prices and factors | free; Yahoo's endpoint is unofficial |
 
-Embeddings are computed locally (fastembed, ~67 MB downloaded once to `data/models`) — no key, no rate limits.
+## Limitations
 
-## Known limitations
-
-* Form 4s can be filed up to **two business days** after the trade, so this is "recent", not "real-time".
-* Social sentiment is AI-labelled and noisy; small samples are shown with their size.
-* The Apify free plan appears to cap results (10 per run) and the scraper can return empty placeholders when throttled;
-  the pipeline then reports `partial` instead of failing. Set `APIFY_ACTOR_ID` to try another scraper (its output fields may need mapping in `tools/apify_tool.py`).
-* Scraping X may conflict with X's terms of service — review before any non-personal use.
-* Informational only; **not investment advice**.
+* Form 4s are due within two business days of a trade, so the data is recent, not real-time.
+* The live pipeline is tested end to end offline; its scheduled runs depend on the `SEC_USER_AGENT` repository secret.
+* The chat agent has a 17-question seed golden set and unit tests for every tool and grounding rule, but no full
+  accuracy benchmark yet.
+* Event-study prices come from Yahoo's unofficial endpoint; delisted tickers often have no data and are dropped
+  (every drop reason is counted in the report), which can bias toward surviving companies.
 
 ## Layout
 
 ```
-app.py                  Streamlit UI (Chat · Dashboard · Pipeline · Health)
-core/                   system factory, live health checks
-agents/                 sec_data, ranking, social_scraper, sentiment, indexing, retrieval, chat, visualization, supervisor
-tools/                  sec_api, apify, llm (provider chain), lightrag (own event-loop thread), db (thread-safe DuckDB), charts
-skills/                 integrity_checks (governance gate), learning_loop
-telemetry/              OpenTelemetry (set OTEL_CONSOLE=true to print spans), quarantine
-config/                 settings + prompts      db/schema.sql      scripts/      tests/
+app/streamlit_app.py       Streamlit UI
+src/insider_intel/
+  edgar/                   EDGAR client, daily index, Form 4 parser, quality helpers
+  pipeline/                ingest, rank, gate, run
+  store/                   DuckDB access, SQL migrations 001–004, insider graph, snapshots
+  chat/                    agent, tools, grounding, degraded mode, service
+  llm/                     provider chain, tool calling, telemetry
+  eval/  market/           evaluation harness and runners, prices, event study
+docs/                      architecture, ADRs, runbook, event-study pre-registration
+datasets/                  golden sets and expected fixture outputs
+reports/                   generated evaluation reports (committed)
+tests/                     pytest suite (offline)
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE).

@@ -1,0 +1,52 @@
+# Freshness SLO check, run 2 days after each scheduled ingest (3rd and 17th): the newest filing must be at most
+# 5 business days old (catches a missed or failed twice-monthly run) and the last pipeline run must not have failed.
+#
+# Runs `python -m insider_intel freshness` against the latest release's live.duckdb.
+#
+# NOTE: this workflow is itself scheduled, so it is also paused after 60 days of repo inactivity.
+name: Freshness
+
+on:
+  schedule:
+    - cron: "15 14 3,17 * *"   # 2 days after each ingest (1st and 15th)
+  workflow_dispatch:
+
+concurrency:
+  group: freshness
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e .
+      - name: Download latest snapshot
+        run: |
+          mkdir -p data
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern 'live.duckdb' --dir data \
+            || { echo "PROBLEM=no release snapshot found" >> "$GITHUB_ENV"; echo "No snapshot"; }
+      - name: Check freshness
+        id: check
+        shell: bash   # enables pipefail so the command's exit code survives `tee`
+        run: |
+          if [ -n "$PROBLEM" ]; then echo "STALE: $PROBLEM" | tee result.txt; exit 1; fi
+          python -m insider_intel freshness --max-business-days 5 --db data/live.duckdb | tee result.txt
+      - name: Open or update data-stale issue
+        if: failure()
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY="$(cat result.txt)"$'\n\n'"Run: $RUN_URL"
+          gh label create data-stale --color FBCA04 --description "Freshness SLO breached" --force
+          N=$(gh issue list --label data-stale --state open --json number --jq '.[0].number // empty')
+          if [ -n "$N" ]; then gh issue comment "$N" --body "$BODY"
+          else gh issue create --label data-stale --title "Data is stale or last run failed" --body "$BODY"; fi

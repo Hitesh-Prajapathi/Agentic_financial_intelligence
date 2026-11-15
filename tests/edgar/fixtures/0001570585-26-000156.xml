@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!-- RECONSTRUCTED: rebuilt in EDGAR ownershipDocument layout from the sec-api.io JSON of a real Form 4 (accession 0001570585-26-000156); values are real but this is NOT the byte-identical SEC original. Replace via fetch_fixtures.py. -->
+<ownershipDocument>
+<schemaVersion>X0609</schemaVersion>
+<documentType>4</documentType>
+<periodOfReport>2026-11-04</periodOfReport>
+<notSubjectToSection16>0</notSubjectToSection16>
+<aff10b5One>0</aff10b5One>
+<issuer><issuerCik>0001570585</issuerCik><issuerName>Liberty Global Ltd.</issuerName><issuerTradingSymbol>LBTY</issuerTradingSymbol></issuer>
+<reportingOwner><reportingOwnerId><rptOwnerCik>0001565787</rptOwnerCik><rptOwnerName>Rodriguez Enrique</rptOwnerName></reportingOwnerId><reportingOwnerRelationship><isDirector>0</isDirector><isOfficer>1</isOfficer><isTenPercentOwner>0</isTenPercentOwner><isOther>0</isOther><officerTitle>EVP, Chief Technology Officer</officerTitle></reportingOwnerRelationship></reportingOwner>
+<nonDerivativeTable>
+<nonDerivativeTransaction><securityTitle><value>Class A Common Shares</value></securityTitle><transactionDate><value>2026-11-04</value></transactionDate><transactionCoding><transactionFormType>4</transactionFormType><transactionCode>P</transactionCode><equitySwapInvolved>0</equitySwapInvolved></transactionCoding><transactionAmounts><transactionShares><value>211313</value></transactionShares><transactionPricePerShare><value>9.4456</value><footnoteId id="F1"/></transactionPricePerShare><transactionAcquiredDisposedCode><value>A</value></transactionAcquiredDisposedCode></transactionAmounts><postTransactionAmounts><sharesOwnedFollowingTransaction><value>602378</value></sharesOwnedFollowingTransaction></postTransactionAmounts><ownershipNature><directOrIndirectOwnership><value>I</value></directOrIndirectOwnership><natureOfOwnership><value>By Trust</value><footnoteId id="F2"/></natureOfOwnership></ownershipNature></nonDerivativeTransaction>
+<nonDerivativeHolding><securityTitle><value>Class A Common Shares</value></securityTitle><postTransactionAmounts><sharesOwnedFollowingTransaction><value>100209</value></sharesOwnedFollowingTransaction></postTransactionAmounts><ownershipNature><directOrIndirectOwnership><value>D</value></directOrIndirectOwnership></ownershipNature></nonDerivativeHolding>
+<nonDerivativeHolding><securityTitle><value>Class C Common Shares</value></securityTitle><postTransactionAmounts><sharesOwnedFollowingTransaction><value>106085</value></sharesOwnedFollowingTransaction></postTransactionAmounts><ownershipNature><directOrIndirectOwnership><value>D</value></directOrIndirectOwnership></ownershipNature></nonDerivativeHolding>
+<nonDerivativeHolding><securityTitle><value>Class C Common Shares</value></securityTitle><postTransactionAmounts><sharesOwnedFollowingTransaction><value>19027</value></sharesOwnedFollowingTransaction></postTransactionAmounts><ownershipNature><directOrIndirectOwnership><value>I</value></directOrIndirectOwnership><natureOfOwnership><value>By 401(k) Plan</value></natureOfOwnership></ownershipNature></nonDerivativeHolding>
+</nonDerivativeTable>
+<footnotes><footnote id="F1">The price reflects a weighted average of purchases made at prices ranging from $9.102 to $9.525. The Reporting Person undertakes to provide upon request by the staff of the Securities and Exchange Commission, the Issuer, or a security holder of the Issuer, information regarding the number of shares purchased at each separate price.</footnote><footnote id="F2">Shares are held by the Enrique Rodriguez Management Trust, of which the Reporting Person is the trustee.</footnote></footnotes>
+<remarks>The trading symbols for the Issuer's classes of common shares are LBTYA, LBTYB, and LBTYK.</remarks>
+<ownerSignature><signatureName>Rodriguez Enrique</signatureName><signatureDate>2026-11-05</signatureDate></ownerSignature>
+</ownershipDocument>

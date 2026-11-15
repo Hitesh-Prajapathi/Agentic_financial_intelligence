@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!-- RECONSTRUCTED: rebuilt in EDGAR ownershipDocument layout from the sec-api.io JSON of a real Form 4 (accession 0001193125-26-448980); values are real but this is NOT the byte-identical SEC original. Replace via fetch_fixtures.py. -->
+<ownershipDocument>
+<schemaVersion>X0609</schemaVersion>
+<documentType>4</documentType>
+<periodOfReport>2026-11-02</periodOfReport>
+<notSubjectToSection16>0</notSubjectToSection16>
+<aff10b5One>0</aff10b5One>
+<issuer><issuerCik>0001228454</issuerCik><issuerName>BCB BANCORP INC</issuerName><issuerTradingSymbol>BCBP</issuerTradingSymbol></issuer>
+<reportingOwner><reportingOwnerId><rptOwnerCik>0001826510</rptOwnerCik><rptOwnerName>Gallotta Steven E.</rptOwnerName></reportingOwnerId><reportingOwnerRelationship><isDirector>1</isDirector><isOfficer>0</isOfficer><isTenPercentOwner>0</isTenPercentOwner><isOther>0</isOther></reportingOwnerRelationship></reportingOwner>
+<nonDerivativeTable>
+<nonDerivativeTransaction><securityTitle><value>Common Stock</value></securityTitle><transactionDate><value>2026-11-02</value></transactionDate><transactionCoding><transactionFormType>4</transactionFormType><transactionCode>P</transactionCode><equitySwapInvolved>0</equitySwapInvolved></transactionCoding><transactionAmounts><transactionShares><value>55</value><footnoteId id="F1"/></transactionShares><transactionPricePerShare><value>9.1299</value></transactionPricePerShare><transactionAcquiredDisposedCode><value>A</value></transactionAcquiredDisposedCode></transactionAmounts><postTransactionAmounts><sharesOwnedFollowingTransaction><value>1514</value><footnoteId id="F2"/></sharesOwnedFollowingTransaction></postTransactionAmounts><ownershipNature><directOrIndirectOwnership><value>D</value></directOrIndirectOwnership></ownershipNature></nonDerivativeTransaction>
+</nonDerivativeTable>
+<footnotes><footnote id="F1">Represents shares of common stock purchased in the open market through a broker on November 2, 2026 to satisfy the minimum director share ownership requirement under New Jersey Banking Law (N.J.S.A. 17:9A-103).</footnote><footnote id="F2">Includes 1,459 shares of restricted stock awarded on October 28, 2026, previously reported on Form 4 on October 30, 2026.</footnote></footnotes>
+<ownerSignature><signatureName>Gallotta Steven E.</signatureName><signatureDate>2026-11-05</signatureDate></ownerSignature>
+</ownershipDocument>

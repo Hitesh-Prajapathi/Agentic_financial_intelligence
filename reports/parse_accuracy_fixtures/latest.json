@@ -1,0 +1,220 @@
+{
+  "name": "parse_accuracy_fixtures",
+  "metadata": {
+    "git_sha": "36ca1d72f4274099c8cef510cfc86d66c4d6d08e",
+    "git_dirty": false,
+    "timestamp_utc": "2026-11-14T17:35:41+00:00",
+    "python": "3.11.14",
+    "dataset": "tests/edgar/fixtures (reconstructed + synthetic)",
+    "expected_csv_sha256": "8855946c3689b00f597f65d257524cbb828829318224d25267433aec87673094",
+    "regressions": [],
+    "observed": {
+      "row_f1_strict": 1.0,
+      "filing_all_correct_rate": 1.0,
+      "min_field_exact_match": 1.0
+    }
+  },
+  "metrics": {
+    "n_accessions": 15,
+    "n_official_rows": 30,
+    "n_parsed_rows": 30,
+    "n_matched_rows": 30,
+    "price_rounding_only": 0,
+    "shares_rounding_only": 0,
+    "parsed_accessions_not_in_official": 0,
+    "field_exact_match": {
+      "form_type": 1.0,
+      "issuer_cik": 1.0,
+      "issuer_ticker": 1.0,
+      "owner_ciks": 1.0,
+      "transaction_date": 1.0,
+      "code": 1.0,
+      "shares": 1.0,
+      "price_per_share": 1.0,
+      "acquired_disposed": 1.0,
+      "post_transaction_shares": 1.0,
+      "direct_indirect": 1.0,
+      "security_title": 1.0
+    },
+    "row_precision": 1.0,
+    "row_recall": 1.0,
+    "row_f1": 1.0,
+    "row_precision_strict": 1.0,
+    "row_recall_strict": 1.0,
+    "row_f1_strict": 1.0,
+    "filing_all_correct_rate": 1.0,
+    "net_flow": {
+      "n_tickers": 6,
+      "mae_usd": 0.0,
+      "median_abs_pct_err": 0.0,
+      "mean_abs_pct_err": 0.0,
+      "share_tickers_exact": 1.0,
+      "mae_usd_cent_rounded": 155.25661666661242,
+      "share_tickers_exact_cent_rounded": 0.6666666666666666
+    },
+    "amendments_4A": {
+      "n": 1,
+      "filing_exact_rate": 1.0,
+      "row_recall": 1.0
+    },
+    "joint_filers": {
+      "n": 1,
+      "filing_exact_rate": 1.0,
+      "row_recall": 1.0
+    },
+    "n_mismatches": 0
+  },
+  "tables": {
+    "Summary": [
+      {
+        "metric": "n_accessions",
+        "value": 15
+      },
+      {
+        "metric": "n_official_rows",
+        "value": 30
+      },
+      {
+        "metric": "n_parsed_rows",
+        "value": 30
+      },
+      {
+        "metric": "n_matched_rows",
+        "value": 30
+      },
+      {
+        "metric": "row_precision",
+        "value": 1.0
+      },
+      {
+        "metric": "row_recall",
+        "value": 1.0
+      },
+      {
+        "metric": "row_f1",
+        "value": 1.0
+      },
+      {
+        "metric": "row_precision_strict",
+        "value": 1.0
+      },
+      {
+        "metric": "row_recall_strict",
+        "value": 1.0
+      },
+      {
+        "metric": "row_f1_strict",
+        "value": 1.0
+      },
+      {
+        "metric": "filing_all_correct_rate",
+        "value": 1.0
+      },
+      {
+        "metric": "price_rounding_only",
+        "value": 0
+      },
+      {
+        "metric": "shares_rounding_only",
+        "value": 0
+      }
+    ],
+    "Per-field exact match": [
+      {
+        "field": "form_type",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "issuer_cik",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "issuer_ticker",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "owner_ciks",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "transaction_date",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "code",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "shares",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "price_per_share",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "acquired_disposed",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "post_transaction_shares",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "direct_indirect",
+        "exact_match_rate": 1.0
+      },
+      {
+        "field": "security_title",
+        "exact_match_rate": 1.0
+      }
+    ],
+    "Net open-market dollar flow error": [
+      {
+        "metric": "n_tickers",
+        "value": 6
+      },
+      {
+        "metric": "mae_usd",
+        "value": 0.0
+      },
+      {
+        "metric": "median_abs_pct_err",
+        "value": 0.0
+      },
+      {
+        "metric": "mean_abs_pct_err",
+        "value": 0.0
+      },
+      {
+        "metric": "share_tickers_exact",
+        "value": 1.0
+      },
+      {
+        "metric": "mae_usd_cent_rounded",
+        "value": 155.25661666661242
+      },
+      {
+        "metric": "share_tickers_exact_cent_rounded",
+        "value": 0.6666666666666666
+      }
+    ],
+    "Amendment / joint-filer handling": [
+      {
+        "subset": "4/A",
+        "n": 1,
+        "filing_exact_rate": 1.0,
+        "row_recall": 1.0
+      },
+      {
+        "subset": "joint filers",
+        "n": 1,
+        "filing_exact_rate": 1.0,
+        "row_recall": 1.0
+      }
+    ],
+    "Mismatch categories": [],
+    "Mismatches (first 500)": []
+  },
+  "notes": "**Fixtures are reconstructed/synthetic** (see tests/edgar/fixtures/README.md): 8 reconstructed from sec-api.io JSON, the rest hand-built. This is a parser regression check against hand-transcribed expected rows, NOT the official-dataset accuracy (E1), which needs real XML and SEC_USER_AGENT.\n\nRecorded baseline: `{\"n_accessions\": 15, \"n_official_rows\": 30, \"row_f1_strict\": 1.0, \"filing_all_correct_rate\": 1.0, \"min_field_exact_match\": 1.0}`. Status: OK"
+}

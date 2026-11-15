@@ -1,13 +1,26 @@
 import pandas as pd
 
-from agents.symbolic_validation import compute_checksum, validate_and_rank
+from insider_intel.pipeline.rank import compute_checksum, validate_and_rank
 
 
 def row(acc, tk="AAA", code="P", shares=1000, price=10.0, name="Ann", idx=0, ad=None, date="2026-11-04", **kw):
-    r = dict(accession_number=acc, row_idx=idx, issuer_ticker=tk, issuer_name=tk + " Inc", code=code, shares=shares,
-             price_per_share=price, insider_name=name, insider_title="CEO", transaction_date=date,
-             acquired_disposed=ad or ("A" if code == "P" else "D"), is_officer=True, is_director=False, is_10b5_1=False,
-             post_transaction_shares=10_000)
+    r = dict(
+        accession_number=acc,
+        row_idx=idx,
+        issuer_ticker=tk,
+        issuer_name=tk + " Inc",
+        code=code,
+        shares=shares,
+        price_per_share=price,
+        insider_name=name,
+        insider_title="CEO",
+        transaction_date=date,
+        acquired_disposed=ad or ("A" if code == "P" else "D"),
+        is_officer=True,
+        is_director=False,
+        is_10b5_1=False,
+        post_transaction_shares=10_000,
+    )
     r.update(kw)
     return r
 
@@ -35,6 +48,22 @@ def test_joint_filer_duplicates_counted_once():
     assert stats["notional_kept"] + stats["notional_dups"] == stats["notional_valid"]
 
 
+def test_joint_filer_dedup_uses_issuer_and_owner_ciks():
+    same = [
+        row("1", name="Fund LP", issuer_cik="9", owner_ciks="10|11"),
+        row("2", name="Fund GP", issuer_cik="9", owner_ciks="10|11"),
+    ]
+    df, _, stats = rank(same)
+    assert df.iloc[0].buy_value == 10_000 and stats["dropped_joint_dups"] == 1
+    # identical trade but a different owner-CIK set (two unrelated insiders) is NOT a duplicate
+    diff = [
+        row("1", name="Ann", issuer_cik="9", owner_ciks="10"),
+        row("2", name="Bob", issuer_cik="9", owner_ciks="12"),
+    ]
+    df, _, stats = rank(diff)
+    assert df.iloc[0].buy_value == 20_000 and stats["dropped_joint_dups"] == 0
+
+
 def test_different_trades_are_not_collapsed():
     df, _, stats = rank([row("1", shares=1000), row("2", shares=1500, name="Bob")])
     assert df.iloc[0].buy_value == 25_000 and stats["dropped_joint_dups"] == 0
@@ -46,7 +75,11 @@ def test_code_and_flag_disagreement_dropped():
 
 
 def test_ranked_by_absolute_net_with_deterministic_ties():
-    rows = [row("1", "BBB", "S", 100, 10), row("2", "AAA", "P", 100, 10, name="Z"), row("3", "CCC", "P", 900, 10, name="Y")]
+    rows = [
+        row("1", "BBB", "S", 100, 10),
+        row("2", "AAA", "P", 100, 10, name="Z"),
+        row("3", "CCC", "P", 900, 10, name="Y"),
+    ]
     df, _, _ = rank(rows)
     assert list(df.issuer_ticker) == ["CCC", "AAA", "BBB"] and list(df["rank"]) == [1, 2, 3]
 
@@ -58,8 +91,11 @@ def test_top_n_and_min_notional():
 
 
 def test_signal_tags():
-    rows = [row("1", "AAA", "P", 1000, 10, name="A"), row("2", "AAA", "P", 1000, 10.5, name="B"),
-            row("3", "BBB", "S", 100, 10, name="C", is_10b5_1=True, post_transaction_shares=100)]
+    rows = [
+        row("1", "AAA", "P", 1000, 10, name="A"),
+        row("2", "AAA", "P", 1000, 10.5, name="B"),
+        row("3", "BBB", "S", 100, 10, name="C", is_10b5_1=True, post_transaction_shares=100),
+    ]
     df, _, _ = rank(rows)
     tags = dict(zip(df.issuer_ticker, df.signal_tags))
     assert "CLUSTER_BUY" in tags["AAA"] and "OFFICER" in tags["AAA"]

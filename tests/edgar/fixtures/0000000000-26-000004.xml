@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!-- SYNTHETIC fixture: hand-built from the documented ownershipDocument structure; fictional company, people, CIKs and accession. Not a real SEC filing. -->
+<ownershipDocument>
+<schemaVersion>X0508</schemaVersion>
+<documentType>4</documentType>
+<periodOfReport>2026-03-10</periodOfReport>
+<notSubjectToSection16>0</notSubjectToSection16>
+<aff10b5One>0</aff10b5One>
+<issuer><issuerCik>0009000001</issuerCik><issuerName>Acme Widgets Inc</issuerName><issuerTradingSymbol>ACME</issuerTradingSymbol></issuer>
+<reportingOwner><reportingOwnerId><rptOwnerCik>0009100001</rptOwnerCik><rptOwnerName>Doe Jane</rptOwnerName></reportingOwnerId><reportingOwnerAddress><rptOwnerStreet1>1 Example Way</rptOwnerStreet1><rptOwnerCity>Springfield</rptOwnerCity><rptOwnerState>XX</rptOwnerState><rptOwnerZipCode>00000</rptOwnerZipCode></reportingOwnerAddress><reportingOwnerRelationship><isDirector>0</isDirector><isOfficer>1</isOfficer><isTenPercentOwner>0</isTenPercentOwner><isOther>0</isOther><officerTitle>Chief Executive Officer</officerTitle></reportingOwnerRelationship></reportingOwner>
+<derivativeTable><derivativeTransaction><securityTitle><value>Stock Option (Right to Buy)</value></securityTitle><conversionOrExercisePrice><value>10.0</value></conversionOrExercisePrice><transactionDate><value>2026-03-10</value></transactionDate><transactionCoding><transactionFormType>4</transactionFormType><transactionCode>A</transactionCode><equitySwapInvolved>0</equitySwapInvolved></transactionCoding><transactionAmounts><transactionShares><value>40000</value></transactionShares><transactionPricePerShare><value>0</value></transactionPricePerShare><transactionAcquiredDisposedCode><value>A</value></transactionAcquiredDisposedCode></transactionAmounts><underlyingSecurity><underlyingSecurityTitle><value>Common Stock</value></underlyingSecurityTitle><underlyingSecurityShares><value>40000</value></underlyingSecurityShares></underlyingSecurity><postTransactionAmounts><sharesOwnedFollowingTransaction><value>40000</value></sharesOwnedFollowingTransaction></postTransactionAmounts><ownershipNature><directOrIndirectOwnership><value>D</value></directOrIndirectOwnership></ownershipNature></derivativeTransaction></derivativeTable>
+<ownerSignature><signatureName>Doe Jane</signatureName><signatureDate>2026-03-12</signatureDate></ownerSignature>
+</ownershipDocument>

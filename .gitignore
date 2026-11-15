@@ -36,3 +36,9 @@ Screenshot*
 
 # Local model cache, test caches
 .pytest_cache/
+
+# Agent worktrees (local only)
+.claude/worktrees/
+
+# Private planning notes and session handoffs (not part of the repo)
+/notes/
