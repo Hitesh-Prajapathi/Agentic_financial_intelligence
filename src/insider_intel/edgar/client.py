@@ -9,14 +9,15 @@
 
 Nothing here runs at import time: no env reads, no network.
 """
+
 from __future__ import annotations
 
 import os
 import re
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import httpx
 
@@ -130,7 +131,7 @@ class EdgarClient:
         if self._owns_client:
             self._http.close()
 
-    def __enter__(self) -> "EdgarClient":
+    def __enter__(self) -> EdgarClient:
         return self
 
     def __exit__(self, *exc) -> None:
@@ -149,7 +150,7 @@ class EdgarClient:
                 return min(float(retry_after), self.backoff_max)
             except ValueError:
                 pass
-        return min(self.backoff_base * (2 ** attempt), self.backoff_max)
+        return min(self.backoff_base * (2**attempt), self.backoff_max)
 
     def get(self, url: str) -> httpx.Response:
         """Rate-limited GET with retries. Returns a 2xx response or raises an EdgarError."""
@@ -169,7 +170,8 @@ class EdgarClient:
                     return resp
                 if code == 403:
                     raise EdgarBlockedError(
-                        f"403 from {url}: SEC blocked the request (check {USER_AGENT_ENV} / rate)", code, url)
+                        f"403 from {url}: SEC blocked the request (check {USER_AGENT_ENV} / rate)", code, url
+                    )
                 if code == 404:
                     raise EdgarNotFound(f"404 not found: {url}", code, url)
                 if code not in RETRY_STATUSES:

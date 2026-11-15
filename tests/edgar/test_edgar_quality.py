@@ -48,8 +48,14 @@ def test_is_late_accepts_iso_strings_and_unknowns():
 
 
 def row(**kw):
-    r = {"issuer_cik": "1", "owner_ciks": "10", "transaction_date": date(2026, 3, 9), "code": "S",
-         "shares": 100.0, "price_per_share": 5.0}
+    r = {
+        "issuer_cik": "1",
+        "owner_ciks": "10",
+        "transaction_date": date(2026, 3, 9),
+        "code": "S",
+        "shares": 100.0,
+        "price_per_share": 5.0,
+    }
     r.update(kw)
     return r
 
@@ -69,10 +75,13 @@ def test_dedup_rows_keeps_first_and_distinguishes_joint_sets():
 
 def test_exercise_and_sell_pairs_same_owner_issuer_day():
     rows = [
-        row(code="M"), row(code="S"), row(code="S", shares=5.0),  # exercise-and-sell
+        row(code="M"),
+        row(code="S"),
+        row(code="S", shares=5.0),  # exercise-and-sell
         row(code="S", owner_ciks="20"),  # other owner: sell only
         row(code="M", issuer_cik="2"),  # other issuer: exercise only
-        row(code="P", owner_ciks="30"), row(code="S", owner_ciks="30", transaction_date=date(2026, 3, 10)),
+        row(code="P", owner_ciks="30"),
+        row(code="S", owner_ciks="30", transaction_date=date(2026, 3, 10)),
     ]
     assert exercise_and_sell_pairs(rows) == {("1", "10", date(2026, 3, 9))}
     assert flag_exercise_and_sell(rows) == [True, True, True, False, False, False, False]

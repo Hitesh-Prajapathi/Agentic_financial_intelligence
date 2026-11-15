@@ -1,4 +1,5 @@
 """Ingest-side parsing: EDGAR XML -> table rows. (Parser internals are covered in tests/edgar/.)"""
+
 from datetime import datetime
 from pathlib import Path
 
@@ -18,7 +19,7 @@ def test_real_filings_map_to_rows():
         r = rows(p.stem)
         f = r["filing"]
         assert f["accession_number"] == p.stem and f["owner_ciks"] and f["issuer_cik"]
-        assert f["filing_date"] == f["accepted_at"] and f["filing_date"].tzinfo is None   # naive UTC
+        assert f["filing_date"] == f["accepted_at"] and f["filing_date"].tzinfo is None  # naive UTC
         assert len(r["owners"]) == len(f["owner_ciks"].split("|"))
         for t in r["txns"]:
             total += 1
@@ -30,9 +31,9 @@ def test_real_filings_map_to_rows():
 
 
 def test_all_codes_and_unusable_prices_are_kept():
-    r = rows("0000000000-26-000007")                 # gifts (G), zero vs missing price
+    r = rows("0000000000-26-000007")  # gifts (G), zero vs missing price
     assert {t["code"] for t in r["txns"]} == {"G"} and any(t["dollar_value"] is None for t in r["txns"])
-    r = rows("0000000000-26-000008")                 # tax withholding (F)
+    r = rows("0000000000-26-000008")  # tax withholding (F)
     assert {t["code"] for t in r["txns"]} == {"F"}
 
 
@@ -47,5 +48,7 @@ def test_joint_filing_and_amendment_and_plan_flags():
     assert len(j["owners"]) == 2 and "|" in j["filing"]["owner_ciks"]
     a = rows("0000000000-26-000003")
     assert a["filing"]["form_type"] == "4/A" and a["filing"]["date_of_original_submission"] is not None
-    assert rows("0000000000-26-000013")["filing"]["is_10b5_1"] and not rows("0000000000-26-000012")["filing"]["is_10b5_1"]
-    assert not rows("0000000000-26-000011")["filing"]["is_10b5_1"]       # negated footnote
+    assert (
+        rows("0000000000-26-000013")["filing"]["is_10b5_1"] and not rows("0000000000-26-000012")["filing"]["is_10b5_1"]
+    )
+    assert not rows("0000000000-26-000011")["filing"]["is_10b5_1"]  # negated footnote

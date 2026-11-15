@@ -1,5 +1,4 @@
 import pandas as pd
-import pytest
 
 from insider_intel.market.event_study import event_day
 

@@ -1,4 +1,5 @@
 """EdgarClient: rate limiting, retries, caching, UA handling. No network (httpx.MockTransport)."""
+
 import httpx
 import pytest
 

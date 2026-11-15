@@ -21,12 +21,14 @@ Mapping EDGAR -> tables
   transactions     one row per non-derivative row, every code; direct/indirect -> ownership_nature
   footnotes        footnote id -> text
 """
+
 from __future__ import annotations
 
 import logging
 import time
 from collections.abc import Callable
-from datetime import date, datetime, time as dtime, timedelta
+from datetime import date, datetime, timedelta
+from datetime import time as dtime
 from zoneinfo import ZoneInfo
 
 from insider_intel.config import settings as default_settings
@@ -68,7 +70,8 @@ class EdgarSource:
             if not self.settings.has_sec_user_agent:
                 raise EdgarConfigError(
                     "SEC_USER_AGENT is not set (or is still the placeholder). SEC requires a descriptive "
-                    "User-Agent with contact info, e.g. SEC_USER_AGENT='your-app-name you@example.com'")
+                    "User-Agent with contact info, e.g. SEC_USER_AGENT='your-app-name you@example.com'"
+                )
             self._client = EdgarClient(user_agent=self.settings.sec_user_agent, cache_dir=self.settings.edgar_cache_dir)
         return self._client
 
@@ -101,30 +104,57 @@ def filing_to_db_rows(f: Filing, entry: IndexEntry | None = None) -> dict:
     filing_ts = accepted or (datetime.combine(entry.date_filed, dtime.min) if entry else None)
     late = any(is_late(t.transaction_date, accepted) for t in f.non_derivative)
     filing = {
-        "accession_number": f.accession_number, "filing_date": filing_ts, "accepted_at": accepted,
-        "issuer_name": f.issuer_name, "issuer_ticker": f.issuer_ticker, "issuer_cik": f.issuer_cik,
-        "insider_name": primary.name, "insider_title": _primary_title(primary),
-        "is_officer": primary.is_officer, "is_director": primary.is_director, "is_ten_pct": primary.is_ten_pct,
-        "is_10b5_1": f.is_10b5_1, "form_type": f.form_type,
+        "accession_number": f.accession_number,
+        "filing_date": filing_ts,
+        "accepted_at": accepted,
+        "issuer_name": f.issuer_name,
+        "issuer_ticker": f.issuer_ticker,
+        "issuer_cik": f.issuer_cik,
+        "insider_name": primary.name,
+        "insider_title": _primary_title(primary),
+        "is_officer": primary.is_officer,
+        "is_director": primary.is_director,
+        "is_ten_pct": primary.is_ten_pct,
+        "is_10b5_1": f.is_10b5_1,
+        "form_type": f.form_type,
         "owner_ciks": "|".join(sorted({o.cik for o in f.owners})),
-        "price_in_footnote": f.price_in_footnote, "is_late": late,
+        "price_in_footnote": f.price_in_footnote,
+        "is_late": late,
         "date_of_original_submission": f.date_of_original_submission,
     }
-    owners = [{"accession_number": f.accession_number, "owner_cik": o.cik, "owner_name": o.name,
-               "is_director": o.is_director, "is_officer": o.is_officer, "is_ten_pct": o.is_ten_pct,
-               "is_other": o.is_other, "officer_title": o.officer_title} for o in f.owners]
+    owners = [
+        {
+            "accession_number": f.accession_number,
+            "owner_cik": o.cik,
+            "owner_name": o.name,
+            "is_director": o.is_director,
+            "is_officer": o.is_officer,
+            "is_ten_pct": o.is_ten_pct,
+            "is_other": o.is_other,
+            "officer_title": o.officer_title,
+        }
+        for o in f.owners
+    ]
     footnotes = [{"accession_number": f.accession_number, "footnote_id": k, "text": v} for k, v in f.footnotes.items()]
     txns = []
     for t in f.non_derivative:
         usable = t.shares is not None and t.price_per_share is not None and t.shares > 0 and t.price_per_share > 0
-        txns.append({
-            "accession_number": f.accession_number, "row_idx": t.row_idx, "transaction_date": t.transaction_date,
-            "security_title": t.security_title, "code": t.code, "acquired_disposed": t.acquired_disposed,
-            "shares": t.shares, "price_per_share": t.price_per_share,
-            "dollar_value": round(t.shares * t.price_per_share, 2) if usable else None,
-            "ownership_nature": t.direct_indirect, "post_transaction_shares": t.post_transaction_shares,
-            "price_footnote_ids": ",".join(t.price_footnote_ids) or None,
-        })
+        txns.append(
+            {
+                "accession_number": f.accession_number,
+                "row_idx": t.row_idx,
+                "transaction_date": t.transaction_date,
+                "security_title": t.security_title,
+                "code": t.code,
+                "acquired_disposed": t.acquired_disposed,
+                "shares": t.shares,
+                "price_per_share": t.price_per_share,
+                "dollar_value": round(t.shares * t.price_per_share, 2) if usable else None,
+                "ownership_nature": t.direct_indirect,
+                "post_transaction_shares": t.post_transaction_shares,
+                "price_footnote_ids": ",".join(t.price_footnote_ids) or None,
+            }
+        )
     return {"filing": filing, "owners": owners, "footnotes": footnotes, "txns": txns}
 
 
@@ -181,13 +211,21 @@ def _business_days(start: date, end: date) -> list[date]:
 def _existing(db, accessions: list[str]) -> set[str]:
     found: set[str] = set()
     for i in range(0, len(accessions), 1000):
-        found |= db.existing_accessions(accessions[i:i + 1000])
+        found |= db.existing_accessions(accessions[i : i + 1000])
     return found
 
 
-def ingest(source, db, settings=default_settings, *, today: date | None = None, since: date | None = None,
-           max_filings: int | None = None, batch_size: int = 200,
-           clock: Callable[[], float] = time.monotonic) -> dict:
+def ingest(
+    source,
+    db,
+    settings=default_settings,
+    *,
+    today: date | None = None,
+    since: date | None = None,
+    max_filings: int | None = None,
+    batch_size: int = 200,
+    clock: Callable[[], float] = time.monotonic,
+) -> dict:
     """Stage 1: pull new Form 4 / 4/A filings from EDGAR and store them. See the module docstring.
 
     `since` overrides the watermark start (backfill; the watermark never moves backwards). The filing cap is
@@ -212,9 +250,20 @@ def ingest(source, db, settings=default_settings, *, today: date | None = None, 
             cap = settings.edgar_max_filings_per_run
         deadline = clock() + settings.edgar_max_runtime_minutes * 60 if settings.edgar_max_runtime_minutes else None
 
-        res = {"filings_fetched": 0, "filings_ingested": 0, "transactions_found": 0, "duplicates_skipped": 0,
-               "parse_errors": 0, "fetch_errors": 0, "index_errors": 0, "days_complete": 0,
-               "stopped_early": None, "start_date": start.isoformat(), "accessions": [], "expected_txns": 0}
+        res = {
+            "filings_fetched": 0,
+            "filings_ingested": 0,
+            "transactions_found": 0,
+            "duplicates_skipped": 0,
+            "parse_errors": 0,
+            "fetch_errors": 0,
+            "index_errors": 0,
+            "days_complete": 0,
+            "stopped_early": None,
+            "start_date": start.isoformat(),
+            "accessions": [],
+            "expected_txns": 0,
+        }
         batch: list[dict] = []
 
         def flush() -> None:

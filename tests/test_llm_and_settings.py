@@ -12,7 +12,7 @@ def make_settings(**kw):
 def test_paid_openrouter_models_are_rejected():
     with pytest.raises(ValidationError):
         make_settings(llm_chain="openrouter:openai/gpt-4o")
-    make_settings(llm_chain="openrouter:foo/bar:free")           # free is fine
+    make_settings(llm_chain="openrouter:foo/bar:free")  # free is fine
     make_settings(llm_chain="openrouter:openai/gpt-4o", allow_paid_models=True)  # explicit opt-in
 
 

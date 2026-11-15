@@ -4,6 +4,7 @@ Chain order comes from settings.llm_chain, e.g. Groq first (fast, 1000 req/day f
 OpenRouter ':free' models as fallback. A rate-limited / failing model is put on a short
 cooldown so the next call skips straight to a healthy one.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -13,9 +14,9 @@ import re
 import threading
 import time
 from collections import deque
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Callable, Iterator
 
 import httpx
 
@@ -89,7 +90,7 @@ def extract_json(text: str) -> dict:
     except json.JSONDecodeError:
         start, end = text.find("{"), text.rfind("}")
         if start != -1 and end > start:
-            return json.loads(text[start:end + 1])
+            return json.loads(text[start : end + 1])
         raise
 
 
@@ -98,19 +99,20 @@ class LLMTool:
         self.settings = settings
         self._http = httpx.Client(timeout=settings.llm_timeout_s)
         self._cooldown: dict[tuple[str, str], float] = {}
-        self._no_tools: set[tuple[str, str]] = set()   # models that rejected `tools`: skipped by chat_tools()
+        self._no_tools: set[tuple[str, str]] = set()  # models that rejected `tools`: skipped by chat_tools()
         self._lock = threading.Lock()
-        self._tl = threading.local()                    # per-thread hash of the prompt being sent (for telemetry)
-        self.on_call = on_call                          # hook feeding the llm_calls table (P3): called with one dict per call
-        self.call_log: deque[dict] = deque(maxlen=500)  # in-memory record of recent calls (tokens, latency, model, purpose, status)
+        self._tl = threading.local()  # per-thread hash of the prompt being sent (for telemetry)
+        self.on_call = on_call  # hook feeding the llm_calls table (P3): called with one dict per call
+        self.call_log: deque[dict] = deque(
+            maxlen=500
+        )  # in-memory record of recent calls (tokens, latency, model, purpose, status)
         self.stats = _Stats()
         self.last_label: str | None = None
         self._quota_cache: tuple[float, dict] | None = None
 
     # ── chain handling ──────────────────────────────────────────────────────
     def chain(self) -> list[tuple[str, str]]:
-        usable = [(p, m) for p, m in self.settings.chain
-                  if p in PROVIDERS and self.settings.has_key(PROVIDERS[p][1])]
+        usable = [(p, m) for p, m in self.settings.chain if p in PROVIDERS and self.settings.has_key(PROVIDERS[p][1])]
         now = time.time()
         ready = [c for c in usable if self._cooldown.get(c, 0) <= now]
         return ready or usable  # if everything is cooling down, try anyway
@@ -151,15 +153,39 @@ class LLMTool:
 
     def _note_prompt(self, messages: list[dict]) -> None:
         try:
-            self._tl.prompt_hash = hashlib.sha256(json.dumps(messages, sort_keys=True, default=str).encode()).hexdigest()[:16]
+            self._tl.prompt_hash = hashlib.sha256(
+                json.dumps(messages, sort_keys=True, default=str).encode()
+            ).hexdigest()[:16]
         except Exception:  # noqa: BLE001
             self._tl.prompt_hash = None
 
-    def _emit(self, purpose: str, provider: str, model: str, status: str, latency_ms: int = 0, prompt_tokens: int = 0,
-              completion_tokens: int = 0, error: str | None = None, tools: bool = False, n_tool_calls: int = 0) -> None:
-        rec = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), "purpose": purpose, "provider": provider,
-               "model": model, "status": status, "latency_ms": latency_ms, "prompt_tokens": prompt_tokens,
-               "completion_tokens": completion_tokens, "prompt_hash": getattr(self._tl, "prompt_hash", None), "tools": tools, "n_tool_calls": n_tool_calls, "error": error}
+    def _emit(
+        self,
+        purpose: str,
+        provider: str,
+        model: str,
+        status: str,
+        latency_ms: int = 0,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        error: str | None = None,
+        tools: bool = False,
+        n_tool_calls: int = 0,
+    ) -> None:
+        rec = {
+            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "purpose": purpose,
+            "provider": provider,
+            "model": model,
+            "status": status,
+            "latency_ms": latency_ms,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "prompt_hash": getattr(self._tl, "prompt_hash", None),
+            "tools": tools,
+            "n_tool_calls": n_tool_calls,
+            "error": error,
+        }
         self.call_log.append(rec)
         if self.on_call:
             try:
@@ -168,14 +194,20 @@ class LLMTool:
                 logger.warning("on_call hook failed", exc_info=True)
 
     # ── non-streaming ───────────────────────────────────────────────────────
-    def chat(self, messages: list[dict], temperature: float = 0.0, max_tokens: int = 1200,
-             json_mode: bool = False, purpose: str = "chat",
-             models: list[tuple[str, str]] | None = None) -> LLMResult:
+    def chat(
+        self,
+        messages: list[dict],
+        temperature: float = 0.0,
+        max_tokens: int = 1200,
+        json_mode: bool = False,
+        purpose: str = "chat",
+        models: list[tuple[str, str]] | None = None,
+    ) -> LLMResult:
         errors = []
         self._note_prompt(messages)
         with timed("llm.chat") as span:
             span.set(llm_purpose=purpose)
-            for provider, model in (models or self.chain()):
+            for provider, model in models or self.chain():
                 label = f"{provider}:{model}"
                 t0 = time.time()
                 try:
@@ -229,8 +261,16 @@ class LLMTool:
             self._no_tools.add((provider, model))
         logger.warning("LLM %s:%s marked as no-tools (%s)", provider, model, why[:200])
 
-    def chat_tools(self, messages: list[dict], tools: list[dict], tool_choice: str = "auto", temperature: float = 0.0,
-                   max_tokens: int = 1200, purpose: str = "agent", models: list[tuple[str, str]] | None = None) -> LLMResult:
+    def chat_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        tool_choice: str = "auto",
+        temperature: float = 0.0,
+        max_tokens: int = 1200,
+        purpose: str = "agent",
+        models: list[tuple[str, str]] | None = None,
+    ) -> LLMResult:
         """One non-streaming call that may return `tool_calls`. Models that reject tools are marked no-tools and skipped
         from then on; transient failures fall through to the next model exactly like chat()."""
         candidates = [c for c in (models or self.chain()) if c not in self._no_tools]
@@ -249,18 +289,37 @@ class LLMTool:
                     self._record(label, True)
                     self.last_label = label
                     span.set(llm_model=label, llm_latency_ms=res.latency_ms, n_tool_calls=len(res.tool_calls))
-                    self._emit(purpose, provider, model, "ok", res.latency_ms, res.prompt_tokens, res.completion_tokens,
-                               tools=True, n_tool_calls=len(res.tool_calls))
+                    self._emit(
+                        purpose,
+                        provider,
+                        model,
+                        "ok",
+                        res.latency_ms,
+                        res.prompt_tokens,
+                        res.completion_tokens,
+                        tools=True,
+                        n_tool_calls=len(res.tool_calls),
+                    )
                     return res
                 except _ToolsRejected as e:
                     self.mark_no_tools(provider, model, str(e))
                     self._record(label, False)
-                    self._emit(purpose, provider, model, "no_tools", int((time.time() - t0) * 1000), error=str(e)[:160], tools=True)
+                    self._emit(
+                        purpose,
+                        provider,
+                        model,
+                        "no_tools",
+                        int((time.time() - t0) * 1000),
+                        error=str(e)[:160],
+                        tools=True,
+                    )
                     errors.append(f"{label}: no tool support")
                 except Exception as e:  # noqa: BLE001
                     self._record(label, False)
                     status = "bad_tool_call" if isinstance(e, _BadToolGeneration) else "error"
-                    self._emit(purpose, provider, model, status, int((time.time() - t0) * 1000), error=str(e)[:160], tools=True)
+                    self._emit(
+                        purpose, provider, model, status, int((time.time() - t0) * 1000), error=str(e)[:160], tools=True
+                    )
                     errors.append(f"{label}: {str(e)[:100]}")
                     logger.warning("LLM %s failed (tools): %s", label, str(e)[:160])
         if all("no tool support" in e for e in errors):
@@ -282,9 +341,11 @@ class LLMTool:
                 self._cool((provider, model), float(ra) if ra and ra.replace(".", "").isdigit() else 30)
             elif resp.status_code in (400, 404, 422):
                 if "tool_use_failed" in low or "failed_generation" in low:
-                    raise _BadToolGeneration(body[:160])  # malformed generation: try the next model, don't mark this one
+                    raise _BadToolGeneration(
+                        body[:160]
+                    )  # malformed generation: try the next model, don't mark this one
                 if resp.status_code == 404 and "tool" not in low:
-                    self._cool((provider, model), 600)    # genuinely missing model
+                    self._cool((provider, model), 600)  # genuinely missing model
                 else:
                     raise _ToolsRejected(f"HTTP {resp.status_code}: {body[:200]}")
             raise RuntimeError(f"HTTP {resp.status_code}")
@@ -297,15 +358,27 @@ class LLMTool:
         for i, tc in enumerate(msg.get("tool_calls") or []):
             fn = tc.get("function") or {}
             args = fn.get("arguments", "")
-            calls.append(ToolCall(tc.get("id") or f"call_{i}", fn.get("name", ""), args if isinstance(args, str) else json.dumps(args)))
+            calls.append(
+                ToolCall(
+                    tc.get("id") or f"call_{i}", fn.get("name", ""), args if isinstance(args, str) else json.dumps(args)
+                )
+            )
         if not text and not calls:
             self._cool((provider, model), 60)
             raise RuntimeError("empty completion")
         usage = data.get("usage") or {}
-        return LLMResult(text, provider, model, 0, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0), calls)
+        return LLMResult(
+            text, provider, model, 0, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0), calls
+        )
 
-    def chat_json(self, messages: list[dict], temperature: float = 0.0, max_tokens: int = 2000,
-                  purpose: str = "json", models: list[tuple[str, str]] | None = None) -> tuple[dict, LLMResult]:
+    def chat_json(
+        self,
+        messages: list[dict],
+        temperature: float = 0.0,
+        max_tokens: int = 2000,
+        purpose: str = "json",
+        models: list[tuple[str, str]] | None = None,
+    ) -> tuple[dict, LLMResult]:
         """Like chat() but guarantees parsed JSON; a model that returns junk falls through to the next."""
         last_err = None
         tried: set[str] = set()
@@ -322,8 +395,9 @@ class LLMTool:
         raise LLMError(f"No model returned valid JSON ({last_err})")
 
     # ── streaming ───────────────────────────────────────────────────────────
-    def stream(self, messages: list[dict], temperature: float = 0.1, max_tokens: int = 1200,
-               purpose: str = "chat_stream") -> Iterator[str]:
+    def stream(
+        self, messages: list[dict], temperature: float = 0.1, max_tokens: int = 1200, purpose: str = "chat_stream"
+    ) -> Iterator[str]:
         errors = []
         self._note_prompt(messages)
         for provider, model in self.chain():
@@ -337,8 +411,9 @@ class LLMTool:
                 if provider == "groq":
                     payload["stream_options"] = {"include_usage": True}
                 in_think = False
-                with self._http.stream("POST", f"{base}/chat/completions",
-                                       headers=self._headers(provider), json=payload) as resp:
+                with self._http.stream(
+                    "POST", f"{base}/chat/completions", headers=self._headers(provider), json=payload
+                ) as resp:
                     self._note_headers(provider, resp)
                     if resp.status_code != 200:
                         if resp.status_code in (429, 413, 503, 500):
@@ -376,8 +451,15 @@ class LLMTool:
                 if got_any:
                     self._record(label, True)
                     self.last_label = label
-                    self._emit(purpose, provider, model, "ok", int((time.time() - t0) * 1000),
-                               usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0))
+                    self._emit(
+                        purpose,
+                        provider,
+                        model,
+                        "ok",
+                        int((time.time() - t0) * 1000),
+                        usage.get("prompt_tokens", 0),
+                        usage.get("completion_tokens", 0),
+                    )
                     return
                 raise RuntimeError("empty stream")
             except Exception as e:  # noqa: BLE001
@@ -393,11 +475,17 @@ class LLMTool:
         if self._quota_cache and time.time() - self._quota_cache[0] < 60:
             return self._quota_cache[1]
         try:
-            r = self._http.get(f"{PROVIDERS['openrouter'][0]}/auth/key", headers=self._headers("openrouter"), timeout=10)
+            r = self._http.get(
+                f"{PROVIDERS['openrouter'][0]}/auth/key", headers=self._headers("openrouter"), timeout=10
+            )
             d = r.json().get("data", {})
             q = d.get("free_model_daily_requests") or {}
-            info = {"ok": r.status_code == 200, "free_remaining": q.get("remaining"), "free_limit": q.get("limit"),
-                    "usage_usd": d.get("usage")}
+            info = {
+                "ok": r.status_code == 200,
+                "free_remaining": q.get("remaining"),
+                "free_limit": q.get("limit"),
+                "usage_usd": d.get("usage"),
+            }
         except Exception as e:  # noqa: BLE001
             info = {"ok": False, "error": str(e)[:100]}
         self._quota_cache = (time.time(), info)
@@ -414,8 +502,10 @@ class LLMTool:
             for model in models:
                 t0 = time.time()
                 try:
-                    self._call_once(provider, model, [{"role": "user", "content": "Reply with: ok"}], 0, 200, False)  # reasoning models spend tokens before answering
-                    results[provider] = {"ok": True, "detail": f"{model} · {int((time.time()-t0)*1000)} ms"}
+                    self._call_once(
+                        provider, model, [{"role": "user", "content": "Reply with: ok"}], 0, 200, False
+                    )  # reasoning models spend tokens before answering
+                    results[provider] = {"ok": True, "detail": f"{model} · {int((time.time() - t0) * 1000)} ms"}
                     break
                 except Exception as e:  # noqa: BLE001
                     results[provider] = {"ok": False, "detail": f"{model}: {str(e)[:80]}"}

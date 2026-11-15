@@ -1,4 +1,5 @@
 """Composition root: builds the whole system for a mode ('live' or 'demo')."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

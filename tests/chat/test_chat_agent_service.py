@@ -37,15 +37,25 @@ def test_chunk_text_roundtrips():
 
 
 def test_two_round_flow_streams_tool_events_then_meta_then_answer(memdb, cfg):
-    llm = FakeToolLLM([reply("", call("top_trades", {"n": 1})),
-                       reply("The top trade is NOVA selling about $1.95M [RANK 2026-11-13 #1]. Largest trade was 33% of his position.")])
+    llm = FakeToolLLM(
+        [
+            reply("", call("top_trades", {"n": 1})),
+            reply(
+                "The top trade is NOVA selling about $1.95M [RANK 2026-11-13 #1]. Largest trade was 33% of his position."
+            ),
+        ]
+    )
     evs = events(svc(memdb, llm, cfg))
     kinds = [e["type"] for e in evs]
-    assert kinds[0] == "tool" and kinds.index("meta") > kinds.index("tool") and kinds.index("meta") < kinds.index("delta")
+    assert (
+        kinds[0] == "tool" and kinds.index("meta") > kinds.index("tool") and kinds.index("meta") < kinds.index("delta")
+    )
     tool = evs[0]
     assert (tool["name"], tool["args"], tool["rows"], tool["ok"]) == ("top_trades", {"n": 1}, 1, True)
     d = done(evs)
-    assert d["mode"] == "agent" and d["confidence"] == "high" and d["model"] == "fake:tool-model" and d["tool_calls"] == 1
+    assert (
+        d["mode"] == "agent" and d["confidence"] == "high" and d["model"] == "fake:tool-model" and d["tool_calls"] == 1
+    )
     assert d["grounding"]["unsupported"] == [] and d["citations"]["valid"] == ["RANK 2026-11-13 #1"]
     assert d["citations"]["invalid"] == [] and d["citations"]["grounded"] is True
     meta = next(e for e in evs if e["type"] == "meta")
@@ -53,28 +63,42 @@ def test_two_round_flow_streams_tool_events_then_meta_then_answer(memdb, cfg):
     # second request carries the assistant tool_calls message and a matching tool message
     msgs = llm.requests[1]["messages"]
     assert msgs[-2]["role"] == "assistant" and msgs[-2]["tool_calls"][0]["id"] == "c_top_trades"
-    assert msgs[-1]["role"] == "tool" and msgs[-1]["tool_call_id"] == "c_top_trades" and "RANK 2026-11-13 #1" in msgs[-1]["content"]
+    assert (
+        msgs[-1]["role"] == "tool"
+        and msgs[-1]["tool_call_id"] == "c_top_trades"
+        and "RANK 2026-11-13 #1" in msgs[-1]["content"]
+    )
     assert msgs[0]["role"] == "system" and "DATA AS OF" in msgs[0]["content"]
     # logged
     assert memdb.conn.execute("SELECT intent, rows_used FROM query_log").fetchall() == [("chat", 1)]
 
 
 def test_multi_round_multi_call(memdb, cfg):
-    llm = FakeToolLLM([reply("", call("co_insiders", {"ticker": "GLBX"}, "a"), call("cluster_events", {"direction": "BUY"}, "b")),
-                       reply("", call("insider_network", {"owner": "Natarajan"}, "c")),
-                       reply("Priya Natarajan also bought QRTZ [GRAPH Natarajan Priya].")])
+    llm = FakeToolLLM(
+        [
+            reply("", call("co_insiders", {"ticker": "GLBX"}, "a"), call("cluster_events", {"direction": "BUY"}, "b")),
+            reply("", call("insider_network", {"owner": "Natarajan"}, "c")),
+            reply("Priya Natarajan also bought QRTZ [GRAPH Natarajan Priya]."),
+        ]
+    )
     evs = events(svc(memdb, llm, cfg))
     tools = [e for e in evs if e["type"] == "tool"]
-    assert [t["name"] for t in tools] == ["co_insiders", "cluster_events", "insider_network"] and [t["round"] for t in tools] == [1, 1, 2]
+    assert [t["name"] for t in tools] == ["co_insiders", "cluster_events", "insider_network"] and [
+        t["round"] for t in tools
+    ] == [1, 1, 2]
     d = done(evs)
     assert d["rounds"] == 2 and d["tool_calls"] == 3 and d["citations"]["valid"] == ["GRAPH Natarajan Priya"]
     assert [r["tool_choice"] for r in llm.requests] == ["auto", "auto", "auto"]
 
 
 def test_invalid_args_and_unknown_tool_are_returned_to_the_model(memdb, cfg):
-    llm = FakeToolLLM([reply("", call("top_trades", {"n": 500}, "x"), call("hack", {}, "y")),
-                       reply("", call("top_trades", {"n": 2}, "z")),
-                       reply("I fixed it: NOVA [RANK 2026-11-13 #1].")])
+    llm = FakeToolLLM(
+        [
+            reply("", call("top_trades", {"n": 500}, "x"), call("hack", {}, "y")),
+            reply("", call("top_trades", {"n": 2}, "z")),
+            reply("I fixed it: NOVA [RANK 2026-11-13 #1]."),
+        ]
+    )
     evs = events(svc(memdb, llm, cfg))
     tools = [e for e in evs if e["type"] == "tool"]
     assert [t["ok"] for t in tools] == [False, False, True]
@@ -88,7 +112,9 @@ def test_max_rounds_then_forced_final_answer(memdb, cfg):
     script = [reply("", call("data_status", {}, f"r{i}")) for i in range(4)] + [reply("Data was refreshed [RUN run1].")]
     llm = FakeToolLLM(script)
     evs = events(svc(memdb, llm, cfg), "summarise the data situation and what else?")
-    assert len(llm.requests) == 5 and llm.requests[4]["tool_choice"] == "none" and llm.requests[3]["tool_choice"] == "auto"
+    assert (
+        len(llm.requests) == 5 and llm.requests[4]["tool_choice"] == "none" and llm.requests[3]["tool_choice"] == "auto"
+    )
     d = done(evs)
     assert d["rounds"] == 4 and d["cut_off"] is False and d["citations"]["valid"] == ["RUN run1"]
 
@@ -108,8 +134,9 @@ def test_per_round_call_cap(memdb):
 
 
 def test_unsupported_number_and_invalid_citation_are_flagged_and_downgrade_confidence(memdb, cfg):
-    llm = FakeToolLLM([reply("", call("top_trades", {"n": 1})),
-                       reply("NOVA sold $9.9M [RANK 2026-11-13 #1] [RANK 2026-01-01 #5].")])
+    llm = FakeToolLLM(
+        [reply("", call("top_trades", {"n": 1})), reply("NOVA sold $9.9M [RANK 2026-11-13 #1] [RANK 2026-01-01 #5].")]
+    )
     d = done(events(svc(memdb, llm, cfg)))
     assert d["grounding"]["unsupported"] == ["$9.9M"] and d["citations"]["invalid"] == ["RANK 2026-01-01 #5"]
     assert d["confidence"] == "moderate"
@@ -126,7 +153,9 @@ def test_abstention_when_tools_are_empty(memdb, cfg):
 
 def test_history_is_passed_to_the_model(memdb, cfg):
     llm = FakeToolLLM([reply("Sure.")])
-    events(svc(memdb, llm, cfg), "and who?", [{"role": "user", "content": "q1"}, {"role": "assistant", "content": "a1"}])
+    events(
+        svc(memdb, llm, cfg), "and who?", [{"role": "user", "content": "q1"}, {"role": "assistant", "content": "a1"}]
+    )
     roles = [m["role"] for m in llm.requests[0]["messages"]]
     assert roles == ["system", "user", "assistant", "user"]
 
@@ -156,7 +185,9 @@ def test_llm_without_tool_api_runs_degraded(memdb, cfg):
 def test_no_model_supports_tools_falls_back_to_degraded_without_tool_events(memdb, cfg):
     llm = FakeToolLLM(no_tools=True, stream_text="plain answer")
     evs = events(svc(memdb, llm, cfg))
-    assert done(evs)["mode"] == "degraded" and not [e for e in evs if e["type"] == "tool"] and "plain answer" in text(evs)
+    assert (
+        done(evs)["mode"] == "degraded" and not [e for e in evs if e["type"] == "tool"] and "plain answer" in text(evs)
+    )
 
 
 def test_degraded_numeric_check_uses_the_evidence_text(memdb, cfg):
@@ -191,7 +222,9 @@ def test_status_and_chart_intents_never_touch_the_llm(memdb, cfg):
 
 
 def test_handle_query_collects_tools_and_grounding(memdb, cfg):
-    llm = FakeToolLLM([reply("", call("sentiment", {"ticker": "GLBX"})), reply("Sentiment is bullish, 20 posts [SENT GLBX].")])
+    llm = FakeToolLLM(
+        [reply("", call("sentiment", {"ticker": "GLBX"})), reply("Sentiment is bullish, 20 posts [SENT GLBX].")]
+    )
     out = svc(memdb, llm, cfg).handle_query("sentiment for GLBX?")
     assert out["mode"] == "agent" and out["tools"][0]["name"] == "sentiment" and out["grounding"]["unsupported"] == []
     assert out["citations"]["valid"] == ["SENT GLBX"]

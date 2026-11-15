@@ -1,17 +1,17 @@
 import json
-import shutil
 from pathlib import Path
 
 import httpx
 import pandas as pd
 import pytest
+from synth_official import write_quarter_zip
 
 from insider_intel.edgar.client import EdgarClient
 from insider_intel.eval import __main__ as cli
-from insider_intel.eval import common, event_study_run as esr
+from insider_intel.eval import common
+from insider_intel.eval import event_study_run as esr
 from insider_intel.eval import parse_accuracy_run as par
 from insider_intel.eval import sec_datasets as sd
-from synth_official import write_quarter_zip
 
 ROOT = Path(__file__).resolve().parents[2]
 FIX = ROOT / "tests" / "edgar" / "fixtures"
@@ -22,10 +22,19 @@ def test_arg_parsing_defaults_and_flags():
     p = cli.build_parser()
     a = p.parse_args(["parse-accuracy", "--year", "2025", "--quarter", "3"])
     assert (a.sample, a.hard, a.seed, a.cache_dir, a.max_fetch, a.yes) == (1000, 100, 0, "data/raw/edgar", None, False)
-    a = p.parse_args(["parse-accuracy", "--year", "2025", "--quarter", "3", "--sample", "50", "--max-fetch", "7", "--yes"])
+    a = p.parse_args(
+        ["parse-accuracy", "--year", "2025", "--quarter", "3", "--sample", "50", "--max-fetch", "7", "--yes"]
+    )
     assert (a.sample, a.max_fetch, a.yes) == (50, 7, True)
     e = p.parse_args(["event-study", "--prices", "csvdir:/x", "--kinds", "cluster_buy", "--dry-run"])
-    assert (e.from_year, e.to_year, e.prices, e.kinds, e.dry_run, e.max_tickers) == (2016, 2025, "csvdir:/x", "cluster_buy", True, None)
+    assert (e.from_year, e.to_year, e.prices, e.kinds, e.dry_run, e.max_tickers) == (
+        2016,
+        2025,
+        "csvdir:/x",
+        "cluster_buy",
+        True,
+        None,
+    )
     assert p.parse_args(["parse-accuracy-offline"]).command == "parse-accuracy-offline"
     with pytest.raises(SystemExit):
         p.parse_args(["parse-accuracy", "--year", "2025", "--quarter", "5"])
@@ -47,10 +56,26 @@ def test_parse_accuracy_without_user_agent_makes_no_request(monkeypatch, capsys)
 def test_event_study_dry_run_needing_sec_without_user_agent_makes_no_request(monkeypatch, tmp_path, capsys):
     called = []
     monkeypatch.setattr(sd, "download_quarter", lambda *a, **k: called.append(1))
-    rc = cli.main(["event-study", "--dry-run", "--from-year", "2024", "--to-year", "2024",
-                   "--data-dir", str(tmp_path / "d"), "--rows-cache", str(tmp_path / "r"),
-                   "--tickers-cache", str(tmp_path / "t.json"), "--price-cache", str(tmp_path / "p"),
-                   "--reports-root", str(tmp_path / "rep")])
+    rc = cli.main(
+        [
+            "event-study",
+            "--dry-run",
+            "--from-year",
+            "2024",
+            "--to-year",
+            "2024",
+            "--data-dir",
+            str(tmp_path / "d"),
+            "--rows-cache",
+            str(tmp_path / "r"),
+            "--tickers-cache",
+            str(tmp_path / "t.json"),
+            "--price-cache",
+            str(tmp_path / "p"),
+            "--reports-root",
+            str(tmp_path / "rep"),
+        ]
+    )
     assert rc == 2 and not called
     assert not (tmp_path / "rep").exists()
 
@@ -72,7 +97,10 @@ def test_fetch_plan_confirmation():
 
 def test_jsonable_coerces_numpy():
     import numpy as np
-    o = common.jsonable({"a": np.int64(3), "b": np.float64("nan"), "c": [np.bool_(True)], "d": pd.Timestamp("2025-01-02")})
+
+    o = common.jsonable(
+        {"a": np.int64(3), "b": np.float64("nan"), "c": [np.bool_(True)], "d": pd.Timestamp("2025-01-02")}
+    )
     assert o == {"a": 3, "b": None, "c": [True], "d": "2025-01-02T00:00:00"}
     assert type(o["a"]) is int
 
@@ -108,12 +136,30 @@ def test_offline_fixture_check_fails_on_regression(tmp_path):
 # ------------------------------------------------------------------ live path with a fake SEC
 def _official_zip(tmp_path):
     f = [
-        dict(acc="0001193125-26-448980", cik="1228454", ticker="BCBP", filed="03-NOV-2026", owners=[("1826510", "")],
-             rows=[("02-NOV-2026", "P", 55, 9.1299, "A", 1514)]),
-        dict(acc="0001193125-26-448969", cik="1228454", ticker="BCBP", filed="04-NOV-2026", owners=[("1628816", "")],
-             rows=[("03-NOV-2026", "P", 57, 8.785, "A", 1516)]),
-        dict(acc="0001193125-26-000999", cik="1228454", ticker="BCBP", filed="04-NOV-2026", owners=[("1628816", "")],
-             rows=[("03-NOV-2026", "P", 1, 2, "A")]),  # folder 404s -> fetch failure, excluded from scoring
+        dict(
+            acc="0001193125-26-448980",
+            cik="1228454",
+            ticker="BCBP",
+            filed="03-NOV-2026",
+            owners=[("1826510", "")],
+            rows=[("02-NOV-2026", "P", 55, 9.1299, "A", 1514)],
+        ),
+        dict(
+            acc="0001193125-26-448969",
+            cik="1228454",
+            ticker="BCBP",
+            filed="04-NOV-2026",
+            owners=[("1628816", "")],
+            rows=[("03-NOV-2026", "P", 57, 8.785, "A", 1516)],
+        ),
+        dict(
+            acc="0001193125-26-000999",
+            cik="1228454",
+            ticker="BCBP",
+            filed="04-NOV-2026",
+            owners=[("1628816", "")],
+            rows=[("03-NOV-2026", "P", 1, 2, "A")],
+        ),  # folder 404s -> fetch failure, excluded from scoring
     ]
     return write_quarter_zip(tmp_path / "data" / "2026q4_form345.zip", f)
 
@@ -126,29 +172,52 @@ def _fake_sec(status_for_index=200):
             if u.endswith(folder + "/index.json"):
                 if status_for_index != 200:
                     return httpx.Response(status_for_index)
-                return httpx.Response(200, json={"directory": {"item": [{"name": "form4.xml"}, {"name": f"{acc}-index.html"}]}})
+                return httpx.Response(
+                    200, json={"directory": {"item": [{"name": "form4.xml"}, {"name": f"{acc}-index.html"}]}}
+                )
             if u.endswith(folder + "/form4.xml"):
                 return httpx.Response(200, content=(FIX / f"{acc}.xml").read_bytes())
         return httpx.Response(404)
+
     return handler
 
 
 def _factory(handler):
-    return lambda cache_dir: EdgarClient("test-agent", cache_dir=cache_dir, transport=httpx.MockTransport(handler),
-                                         sleep=lambda s: None)
+    return lambda cache_dir: EdgarClient(
+        "test-agent", cache_dir=cache_dir, transport=httpx.MockTransport(handler), sleep=lambda s: None
+    )
 
 
 def _live_args(tmp_path, *extra):
-    return cli.build_parser().parse_args(["parse-accuracy", "--year", "2026", "--quarter", "4", "--sample", "10", "--hard", "0",
-                                          "--cache-dir", str(tmp_path / "cache"), "--reports-root", str(tmp_path / "rep"),
-                                          "--data-dir", str(tmp_path / "data"), *extra])
+    return cli.build_parser().parse_args(
+        [
+            "parse-accuracy",
+            "--year",
+            "2026",
+            "--quarter",
+            "4",
+            "--sample",
+            "10",
+            "--hard",
+            "0",
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--reports-root",
+            str(tmp_path / "rep"),
+            "--data-dir",
+            str(tmp_path / "data"),
+            *extra,
+        ]
+    )
 
 
 def test_live_parse_accuracy_with_fake_sec(tmp_path, monkeypatch):
     monkeypatch.setenv("SEC_USER_AGENT", "test-agent a@b.org")
     zp = _official_zip(tmp_path)
     msgs = []
-    rc = par.run_live(_live_args(tmp_path), client_factory=_factory(_fake_sec()), downloader=lambda *a: zp, out=msgs.append)
+    rc = par.run_live(
+        _live_args(tmp_path), client_factory=_factory(_fake_sec()), downloader=lambda *a: zp, out=msgs.append
+    )
     assert rc == 0
     js = json.loads((tmp_path / "rep" / "parse_accuracy" / "2026q4" / "latest.json").read_text())
     md = js["metadata"]
@@ -162,7 +231,9 @@ def test_live_aborts_on_403_and_writes_no_report(tmp_path, monkeypatch):
     monkeypatch.setenv("SEC_USER_AGENT", "test-agent a@b.org")
     zp = _official_zip(tmp_path)
     msgs = []
-    rc = par.run_live(_live_args(tmp_path), client_factory=_factory(_fake_sec(403)), downloader=lambda *a: zp, out=msgs.append)
+    rc = par.run_live(
+        _live_args(tmp_path), client_factory=_factory(_fake_sec(403)), downloader=lambda *a: zp, out=msgs.append
+    )
     assert rc == 4 and not (tmp_path / "rep").exists()
 
 
@@ -171,7 +242,9 @@ def test_live_requires_yes_above_200_requests(tmp_path, monkeypatch):
     zp = _official_zip(tmp_path)
     monkeypatch.setattr(par, "REQUESTS_PER_FILING_COLD", 500)
     msgs = []
-    rc = par.run_live(_live_args(tmp_path), client_factory=_factory(_fake_sec()), downloader=lambda *a: zp, out=msgs.append)
+    rc = par.run_live(
+        _live_args(tmp_path), client_factory=_factory(_fake_sec()), downloader=lambda *a: zp, out=msgs.append
+    )
     assert rc == 2 and any("--yes" in m for m in msgs) and not (tmp_path / "rep").exists()
     assert not (tmp_path / "cache").exists() or not list((tmp_path / "cache").glob("*.xml"))
 
@@ -179,8 +252,12 @@ def test_live_requires_yes_above_200_requests(tmp_path, monkeypatch):
 def test_live_max_fetch_is_seeded_random_subsample(tmp_path, monkeypatch):
     monkeypatch.setenv("SEC_USER_AGENT", "test-agent a@b.org")
     zp = _official_zip(tmp_path)
-    rc = par.run_live(_live_args(tmp_path, "--max-fetch", "1"), client_factory=_factory(_fake_sec()),
-                      downloader=lambda *a: zp, out=lambda s: None)
+    rc = par.run_live(
+        _live_args(tmp_path, "--max-fetch", "1"),
+        client_factory=_factory(_fake_sec()),
+        downloader=lambda *a: zp,
+        out=lambda s: None,
+    )
     assert rc == 0
     md = json.loads((tmp_path / "rep" / "parse_accuracy" / "2026q4" / "latest.json").read_text())["metadata"]
     assert md["n_skipped_max_fetch"] == 2 and md["n_scored"] + md["n_fetch_failed"] == 1

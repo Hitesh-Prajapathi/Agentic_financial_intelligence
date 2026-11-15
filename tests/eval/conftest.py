@@ -1,4 +1,5 @@
 """Offline guard for the eval tests: no real HTTP, and no SEC_USER_AGENT leaking in from the shell."""
+
 import httpx
 import pytest
 

@@ -10,13 +10,13 @@ from insider_intel.market.prices import (
     PriceProvider,
     ProviderBlocked,
     ProviderError,
+    empty_prices,
     parse_ff_daily_csv,
     parse_stooq_csv,
     parse_yahoo_chart,
     read_parquet,
     trading_calendar,
     write_parquet,
-    empty_prices,
 )
 
 STOOQ = """Date,Open,High,Low,Close,Volume
@@ -48,7 +48,9 @@ def test_parse_stooq_csv_and_adjustment_note():
 def test_stooq_no_data_and_html_challenge():
     assert parse_stooq_csv("No data").empty
     with pytest.raises(ProviderBlocked):
-        parse_stooq_csv('<!DOCTYPE html><html><body>This site requires JavaScript to verify your browser.</body></html>')
+        parse_stooq_csv(
+            "<!DOCTYPE html><html><body>This site requires JavaScript to verify your browser.</body></html>"
+        )
 
 
 def test_parse_yahoo_chart():
@@ -59,7 +61,9 @@ def test_parse_yahoo_chart():
                     "meta": {"gmtoffset": -18000},
                     "timestamp": [1699972200, 1700058600],
                     "indicators": {
-                        "quote": [{"open": [1, 2], "high": [2, 3], "low": [0.5, 1], "close": [1.5, 2.5], "volume": [10, 20]}],
+                        "quote": [
+                            {"open": [1, 2], "high": [2, 3], "low": [0.5, 1], "close": [1.5, 2.5], "volume": [10, 20]}
+                        ],
                         "adjclose": [{"adjclose": [1.4, 2.4]}],
                     },
                 }
@@ -120,7 +124,9 @@ class FakeProvider(PriceProvider):
         if ticker not in self.known:
             return empty_prices()
         d = pd.bdate_range(start, end)
-        return pd.DataFrame({"date": d, "open": 1.0, "high": 1.0, "low": 1.0, "close": 1.0, "adj_close": 1.0, "volume": 1})
+        return pd.DataFrame(
+            {"date": d, "open": 1.0, "high": 1.0, "low": 1.0, "close": 1.0, "adj_close": 1.0, "volume": 1}
+        )
 
 
 def _cache(tmp_path, prov, **kw):
@@ -138,7 +144,9 @@ def test_cache_fetches_only_missing_ranges(tmp_path):
     assert len(prov.calls) == 2 and prov.calls[1][1] == pd.Timestamp("2024-01-16")
     df = c.get("AAA", "2023-12-01", "2024-01-31")
     assert len(prov.calls) == 3 and prov.calls[2][2] == pd.Timestamp("2024-01-01")
-    assert df["date"].is_unique and df["date"].is_monotonic_increasing and df["date"].min() == pd.Timestamp("2023-12-01")
+    assert (
+        df["date"].is_unique and df["date"].is_monotonic_increasing and df["date"].min() == pd.Timestamp("2023-12-01")
+    )
     meta = json.loads((tmp_path / "meta.json").read_text())
     assert meta["AAA"]["start"] == "2023-12-01" and meta["AAA"]["end"] == "2024-01-31"
     # end beyond yesterday is clamped (no future / partial bar)
@@ -176,6 +184,8 @@ def test_cache_rate_limit_enforced(tmp_path):
         sleeps.append(s)
         t["now"] += s
 
-    c = PriceCache(FakeProvider(), tmp_path, min_interval=0.5, clock=lambda: t["now"], sleep=sleep, today=date(2024, 2, 1))
+    c = PriceCache(
+        FakeProvider(), tmp_path, min_interval=0.5, clock=lambda: t["now"], sleep=sleep, today=date(2024, 2, 1)
+    )
     c.get_many(["AAA", "BBB", "CCC"], "2024-01-02", "2024-01-15")
     assert len(sleeps) == 2 and all(s == pytest.approx(0.5) for s in sleeps)

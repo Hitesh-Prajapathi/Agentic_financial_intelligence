@@ -8,6 +8,7 @@ amendments and derivative-only filings.
 CIKs are normalised to unpadded strings (EDGAR XML pads them to 10 digits; the daily
 index and company_tickers.json do not).
 """
+
 from __future__ import annotations
 
 import re
@@ -32,7 +33,7 @@ _TRUE = {"1", "true", "y", "yes"}
 def mentions_trading_plan(text: str) -> bool:
     """True if the text says a trade was made under a Rule 10b5-1 plan (ignores 'not pursuant to ...')."""
     for m in _PLAN_RE.finditer(text or ""):
-        if not _NEGATION_RE.search(text[max(0, m.start() - 70):m.start()]):
+        if not _NEGATION_RE.search(text[max(0, m.start() - 70) : m.start()]):
             return True
     return False
 
@@ -209,10 +210,7 @@ def parse_form4(xml: str | bytes, accession_number: str, accepted_at: datetime |
     if not owners:
         raise Form4ParseError("no reportingOwner")
 
-    txns = [
-        _parse_txn(i, t)
-        for i, t in enumerate(root.findall("nonDerivativeTable/nonDerivativeTransaction"))
-    ]
+    txns = [_parse_txn(i, t) for i, t in enumerate(root.findall("nonDerivativeTable/nonDerivativeTransaction"))]
 
     footnotes: dict[str, str] = {}
     for f in root.findall("footnotes/footnote"):
@@ -227,9 +225,7 @@ def parse_form4(xml: str | bytes, accession_number: str, accepted_at: datetime |
     text_blob = " ".join(list(footnotes.values()) + ([remarks] if remarks else []))
     is_plan = checkbox if checkbox is not None else mentions_trading_plan(text_blob)
 
-    price_in_fn = any(
-        t.code in ("P", "S") and t.price_per_share is None and bool(t.price_footnote_ids) for t in txns
-    )
+    price_in_fn = any(t.code in ("P", "S") and t.price_per_share is None and bool(t.price_footnote_ids) for t in txns)
 
     return Filing(
         accession_number=_norm_accession(accession_number),

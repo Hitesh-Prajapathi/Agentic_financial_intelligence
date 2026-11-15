@@ -6,6 +6,7 @@
 
 Never put raw user text in attributes (use lengths / hashes instead).
 """
+
 from __future__ import annotations
 
 import json
@@ -40,4 +41,6 @@ def timed(name: str, **attrs):
         raise
     finally:
         span.duration_ms = round((time.perf_counter() - t0) * 1000, 1)
-        logger.info(json.dumps({"event": name, "duration_ms": span.duration_ms, "outcome": outcome, **span.attrs}, default=str))
+        logger.info(
+            json.dumps({"event": name, "duration_ms": span.duration_ms, "outcome": outcome, **span.attrs}, default=str)
+        )

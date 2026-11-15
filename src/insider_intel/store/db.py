@@ -12,6 +12,7 @@ Request path (UI / chat): `get_read_only_db(path)` opens DuckDB with `read_only=
 process, so if this process already holds the read/write instance, the helper returns a read-only *view*
 that shares its connection.
 """
+
 from __future__ import annotations
 
 import json
@@ -55,7 +56,9 @@ def latest_version() -> int:
 
 
 def _applied_versions(conn) -> set[int]:
-    has = conn.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'schema_version'").fetchone()[0]
+    has = conn.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'schema_version'").fetchone()[
+        0
+    ]
     if not has:
         return set()
     return {r[0] for r in conn.execute("SELECT version FROM schema_version").fetchall()}
@@ -106,7 +109,8 @@ class DBTool:
                 self.conn.close()
                 raise SchemaOutOfDateError(
                     f"{path} is at schema version {have} but the code expects {latest_version()}; "
-                    "run `python -m insider_intel migrate` first")
+                    "run `python -m insider_intel migrate` first"
+                )
         else:
             if path != ":memory:":
                 os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
@@ -199,12 +203,28 @@ class DBTool:
                    insider_name, insider_title, is_officer, is_director, is_ten_pct, is_10b5_1, form_type,
                    accepted_at, owner_ciks, price_in_footnote, is_late, date_of_original_submission)
                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING""",
-            [(f["accession_number"], f.get("filing_date"), f.get("issuer_name"), f.get("issuer_ticker"),
-              f.get("issuer_cik"), f.get("insider_name"), f.get("insider_title"),
-              bool(f.get("is_officer")), bool(f.get("is_director")), bool(f.get("is_ten_pct")),
-              bool(f.get("is_10b5_1")), f.get("form_type", "4"),
-              f.get("accepted_at"), f.get("owner_ciks"), bool(f.get("price_in_footnote")), bool(f.get("is_late")),
-              f.get("date_of_original_submission")) for f in filings],
+            [
+                (
+                    f["accession_number"],
+                    f.get("filing_date"),
+                    f.get("issuer_name"),
+                    f.get("issuer_ticker"),
+                    f.get("issuer_cik"),
+                    f.get("insider_name"),
+                    f.get("insider_title"),
+                    bool(f.get("is_officer")),
+                    bool(f.get("is_director")),
+                    bool(f.get("is_ten_pct")),
+                    bool(f.get("is_10b5_1")),
+                    f.get("form_type", "4"),
+                    f.get("accepted_at"),
+                    f.get("owner_ciks"),
+                    bool(f.get("price_in_footnote")),
+                    bool(f.get("is_late")),
+                    f.get("date_of_original_submission"),
+                )
+                for f in filings
+            ],
         )
 
     def insert_transactions(self, txns: list[dict]) -> None:
@@ -213,19 +233,42 @@ class DBTool:
                    acquired_disposed, shares, price_per_share, dollar_value, ownership_nature, post_transaction_shares,
                    price_footnote_ids)
                VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING""",
-            [(t["accession_number"], t["row_idx"], t.get("transaction_date"), t.get("security_title"), t.get("code"),
-              t.get("acquired_disposed"), t.get("shares"), t.get("price_per_share"), t.get("dollar_value"),
-              t.get("ownership_nature"), t.get("post_transaction_shares"), t.get("price_footnote_ids"))
-             for t in txns],
+            [
+                (
+                    t["accession_number"],
+                    t["row_idx"],
+                    t.get("transaction_date"),
+                    t.get("security_title"),
+                    t.get("code"),
+                    t.get("acquired_disposed"),
+                    t.get("shares"),
+                    t.get("price_per_share"),
+                    t.get("dollar_value"),
+                    t.get("ownership_nature"),
+                    t.get("post_transaction_shares"),
+                    t.get("price_footnote_ids"),
+                )
+                for t in txns
+            ],
         )
 
     def insert_reporting_owners(self, owners: list[dict]) -> None:
         self.executemany(
             """INSERT INTO reporting_owners (accession_number, owner_cik, owner_name, is_director, is_officer,
                    is_ten_pct, is_other, officer_title) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING""",
-            [(o["accession_number"], o["owner_cik"], o.get("owner_name"), bool(o.get("is_director")),
-              bool(o.get("is_officer")), bool(o.get("is_ten_pct")), bool(o.get("is_other")), o.get("officer_title"))
-             for o in owners],
+            [
+                (
+                    o["accession_number"],
+                    o["owner_cik"],
+                    o.get("owner_name"),
+                    bool(o.get("is_director")),
+                    bool(o.get("is_officer")),
+                    bool(o.get("is_ten_pct")),
+                    bool(o.get("is_other")),
+                    o.get("officer_title"),
+                )
+                for o in owners
+            ],
         )
 
     def insert_footnotes(self, rows: list[dict]) -> None:
@@ -243,7 +286,9 @@ class DBTool:
         self.execute(
             """INSERT INTO ingest_watermark (source, last_index_date, updated_at) VALUES (?,?,CURRENT_TIMESTAMP)
                ON CONFLICT (source) DO UPDATE SET last_index_date = EXCLUDED.last_index_date,
-                                                  updated_at = EXCLUDED.updated_at""", [source, d])
+                                                  updated_at = EXCLUDED.updated_at""",
+            [source, d],
+        )
 
     # ── ranking output ──────────────────────────────────────────────────────
     def replace_top_trades(self, run_id: str, run_date: str, trades: list[dict]) -> None:
@@ -255,17 +300,37 @@ class DBTool:
                        insider_title, net_dollar_value, buy_value, sell_value, transaction_count, insider_count,
                        pct_holdings, planned_pct, dominant_direction, signal_tags, validation_checksum)
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                [(run_id, run_date, t["rank"], t["issuer_ticker"], t.get("issuer_name"), t.get("insider_name"),
-                  t.get("insider_title"), t["net_dollar_value"], t["buy_value"], t["sell_value"],
-                  t["transaction_count"], t["insider_count"], t.get("pct_holdings"), t.get("planned_pct"),
-                  t["dominant_direction"], t.get("signal_tags", ""), t.get("validation_checksum")) for t in trades],
+                [
+                    (
+                        run_id,
+                        run_date,
+                        t["rank"],
+                        t["issuer_ticker"],
+                        t.get("issuer_name"),
+                        t.get("insider_name"),
+                        t.get("insider_title"),
+                        t["net_dollar_value"],
+                        t["buy_value"],
+                        t["sell_value"],
+                        t["transaction_count"],
+                        t["insider_count"],
+                        t.get("pct_holdings"),
+                        t.get("planned_pct"),
+                        t["dominant_direction"],
+                        t.get("signal_tags", ""),
+                        t.get("validation_checksum"),
+                    )
+                    for t in trades
+                ],
             )
 
     def latest_top_trades(self, limit: int = 20) -> pd.DataFrame:
         return self.query_df(
             """SELECT * FROM top_trades
                WHERE run_date = (SELECT MAX(run_date) FROM top_trades)
-               ORDER BY rank LIMIT ?""", [limit])
+               ORDER BY rank LIMIT ?""",
+            [limit],
+        )
 
     # ── tweets / sentiment ──────────────────────────────────────────────────
     def insert_tweets(self, tweets: list[dict]) -> int:
@@ -273,9 +338,20 @@ class DBTool:
         self.executemany(
             """INSERT INTO tweets (tweet_id, ticker, text, author_username, author_followers, created_at,
                    retweet_count, like_count, reply_count) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING""",
-            [(t["tweet_id"], t["ticker"], t["text"], t.get("author_username"), t.get("author_followers"),
-              t.get("created_at"), t.get("retweet_count", 0), t.get("like_count", 0), t.get("reply_count", 0))
-             for t in tweets],
+            [
+                (
+                    t["tweet_id"],
+                    t["ticker"],
+                    t["text"],
+                    t.get("author_username"),
+                    t.get("author_followers"),
+                    t.get("created_at"),
+                    t.get("retweet_count", 0),
+                    t.get("like_count", 0),
+                    t.get("reply_count", 0),
+                )
+                for t in tweets
+            ],
         )
         return self.query("SELECT COUNT(*) FROM tweets")[0][0] - before
 
@@ -287,8 +363,18 @@ class DBTool:
                ON CONFLICT (tweet_id) DO UPDATE SET sentiment_label = EXCLUDED.sentiment_label,
                    confidence_score = EXCLUDED.confidence_score, model = EXCLUDED.model,
                    reviewed = EXCLUDED.reviewed, classified_at = EXCLUDED.classified_at""",
-            [(r["tweet_id"], r["ticker"], r["sentiment_label"], r["confidence_score"], r.get("model"),
-              bool(r.get("reviewed")), now) for r in rows],
+            [
+                (
+                    r["tweet_id"],
+                    r["ticker"],
+                    r["sentiment_label"],
+                    r["confidence_score"],
+                    r.get("model"),
+                    bool(r.get("reviewed")),
+                    now,
+                )
+                for r in rows
+            ],
         )
 
     def refresh_sentiment_summary(self, tickers: list[str] | None = None) -> None:
@@ -315,8 +401,10 @@ class DBTool:
 
     # ── pipeline bookkeeping ────────────────────────────────────────────────
     def start_run(self, run_id: str, started_at: datetime, trigger: str) -> None:
-        self.execute("INSERT INTO pipeline_runs (run_id, started_at, status, trigger, stages) VALUES (?,?,?,?,?)",
-                     [run_id, started_at, "running", trigger, "{}"])
+        self.execute(
+            "INSERT INTO pipeline_runs (run_id, started_at, status, trigger, stages) VALUES (?,?,?,?,?)",
+            [run_id, started_at, "running", trigger, "{}"],
+        )
 
     def update_run(self, run_id: str, **fields) -> None:
         if not fields:
@@ -327,17 +415,39 @@ class DBTool:
         self.execute(f"UPDATE pipeline_runs SET {cols} WHERE run_id = ?", [*fields.values(), run_id])
 
     # ── chat telemetry ──────────────────────────────────────────────────────
-    def log_query(self, question: str, intent: str, confidence: str, latency_ms: int, model: str | None,
-                  rows_used: int, *, mode: str | None = None, tool_calls: int | None = None,
-                  unsupported_numbers: int | None = None, prompt_hash: str | None = None) -> int:
+    def log_query(
+        self,
+        question: str,
+        intent: str,
+        confidence: str,
+        latency_ms: int,
+        model: str | None,
+        rows_used: int,
+        *,
+        mode: str | None = None,
+        tool_calls: int | None = None,
+        unsupported_numbers: int | None = None,
+        prompt_hash: str | None = None,
+    ) -> int:
         self._check_writable()
         with self._lock:
             return self.conn.execute(
                 """INSERT INTO query_log (question, intent, confidence, latency_ms, model, rows_used,
                                           mode, tool_calls, unsupported_numbers, prompt_hash)
                    VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id""",
-                [question[:500], intent, confidence, latency_ms, model, rows_used,
-                 mode, tool_calls, unsupported_numbers, prompt_hash]).fetchone()[0]
+                [
+                    question[:500],
+                    intent,
+                    confidence,
+                    latency_ms,
+                    model,
+                    rows_used,
+                    mode,
+                    tool_calls,
+                    unsupported_numbers,
+                    prompt_hash,
+                ],
+            ).fetchone()[0]
 
     def set_feedback(self, query_id: int, value: int) -> None:
         self.execute("UPDATE query_log SET feedback = ? WHERE id = ?", [value, query_id])

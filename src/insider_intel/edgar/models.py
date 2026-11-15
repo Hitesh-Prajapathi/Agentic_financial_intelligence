@@ -1,4 +1,5 @@
 """Pydantic models for a parsed Form 4 / 4/A ownership document."""
+
 from __future__ import annotations
 
 from datetime import date, datetime

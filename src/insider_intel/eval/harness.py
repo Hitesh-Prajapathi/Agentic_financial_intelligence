@@ -1,4 +1,5 @@
 """Shared evaluation harness: report writer, response cache, budget planner, bootstrap CI."""
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -8,14 +9,20 @@ import platform
 import sqlite3
 import subprocess
 import threading
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any
 
 import numpy as np
 
 __all__ = [
-    "ReportWriter", "prompt_hash", "ResponseCache", "BudgetPlanner",
-    "BudgetExceeded", "bootstrap_ci", "md_table",
+    "ReportWriter",
+    "prompt_hash",
+    "ResponseCache",
+    "BudgetPlanner",
+    "BudgetExceeded",
+    "bootstrap_ci",
+    "md_table",
 ]
 
 
@@ -87,8 +94,13 @@ class ReportWriter:
         meta.update(extra)
         return meta
 
-    def write(self, metrics: dict[str, Any] | None = None, tables: dict[str, Any] | None = None,
-              notes: str = "", metadata: dict | None = None) -> Path:
+    def write(
+        self,
+        metrics: dict[str, Any] | None = None,
+        tables: dict[str, Any] | None = None,
+        notes: str = "",
+        metadata: dict | None = None,
+    ) -> Path:
         """metrics: JSON-able dict (stored in json). tables: {title: list[dict] | DataFrame}.
 
         metadata keys (dataset name/version/sha256, model ids, prompt hashes, seed,
@@ -99,9 +111,10 @@ class ReportWriter:
         self.dir.mkdir(parents=True, exist_ok=True)
         table_rows = {}
         for title, t in tables.items():
-            table_rows[title] = t.to_dict(orient="records") if hasattr(t, "to_dict") and hasattr(t, "columns") else list(t)
-        payload = {"name": self.name, "metadata": meta, "metrics": metrics or {},
-                   "tables": table_rows, "notes": notes}
+            table_rows[title] = (
+                t.to_dict(orient="records") if hasattr(t, "to_dict") and hasattr(t, "columns") else list(t)
+            )
+        payload = {"name": self.name, "metadata": meta, "metrics": metrics or {}, "tables": table_rows, "notes": notes}
         short = str(meta["git_sha"])[:7]
         stamp = meta["timestamp_utc"][:10].replace("-", "")
         dated = self.dir / f"{stamp}_{short}.json"
@@ -114,8 +127,11 @@ class ReportWriter:
             md.append(f"- **{k}**: `{v if not isinstance(v, (dict, list)) else _canon(v)}`")
         md.append("")
         if metrics:
-            flat = [{"metric": k, "value": v} for k, v in metrics.items()
-                    if isinstance(v, (int, float, str, bool)) or v is None]
+            flat = [
+                {"metric": k, "value": v}
+                for k, v in metrics.items()
+                if isinstance(v, (int, float, str, bool)) or v is None
+            ]
             if flat:
                 md += ["## Metrics", "", md_table(flat)]
         for title, t in tables.items():
@@ -135,7 +151,9 @@ class ResponseCache:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
         self._db = sqlite3.connect(str(self.path), check_same_thread=False)
-        self._db.execute("CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, created TEXT NOT NULL)")
+        self._db.execute(
+            "CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, created TEXT NOT NULL)"
+        )
         self._db.commit()
         self.hits = 0
         self.misses = 0
@@ -159,15 +177,21 @@ class ResponseCache:
 
     def put(self, key: str, value: Any) -> None:
         with self._lock:
-            self._db.execute("INSERT OR REPLACE INTO cache VALUES (?,?,?)",
-                             (key, json.dumps(value, default=str),
-                              _dt.datetime.now(_dt.timezone.utc).isoformat()))
+            self._db.execute(
+                "INSERT OR REPLACE INTO cache VALUES (?,?,?)",
+                (key, json.dumps(value, default=str), _dt.datetime.now(_dt.timezone.utc).isoformat()),
+            )
             self._db.commit()
 
     def cached_call(self, fn: Callable[[], Any], key_parts: dict) -> Any:
         """key_parts: provider, model, prompt_hash, messages (opt), params (opt). Value must be JSON-able."""
-        key = self.make_key(key_parts["provider"], key_parts["model"], key_parts["prompt_hash"],
-                            key_parts.get("messages"), key_parts.get("params"))
+        key = self.make_key(
+            key_parts["provider"],
+            key_parts["model"],
+            key_parts["prompt_hash"],
+            key_parts.get("messages"),
+            key_parts.get("params"),
+        )
         with self._lock:
             row = self._db.execute("SELECT value FROM cache WHERE key=?", (key,)).fetchone()
             if row is not None:
@@ -193,8 +217,14 @@ class BudgetExceeded(RuntimeError):
 class BudgetPlanner:
     """Pre-flight check of planned (uncached) LLM calls against free-tier quotas."""
 
-    def __init__(self, planned_calls: int, est_tokens_per_call: int, daily_request_limit: int = 1000,
-                 tpm_limit: int = 8000, remaining_requests: int | None = None):
+    def __init__(
+        self,
+        planned_calls: int,
+        est_tokens_per_call: int,
+        daily_request_limit: int = 1000,
+        tpm_limit: int = 8000,
+        remaining_requests: int | None = None,
+    ):
         self.planned_calls = planned_calls
         self.est_tokens_per_call = est_tokens_per_call
         self.daily_request_limit = daily_request_limit
@@ -216,20 +246,28 @@ class BudgetPlanner:
         if self.planned_calls > self.remaining_requests:
             raise BudgetExceeded(
                 f"{self.planned_calls} planned uncached calls exceed remaining quota "
-                f"{self.remaining_requests} (daily limit {self.daily_request_limit})")
+                f"{self.remaining_requests} (daily limit {self.daily_request_limit})"
+            )
         return est
 
     def summary(self) -> str:
         e = self.estimate()
-        return (f"{e['planned_calls']} calls x ~{self.est_tokens_per_call} tok = {e['total_tokens']} tokens; "
-                f"~{e['minutes_at_tpm']:.1f} min at {self.tpm_limit} TPM; "
-                f"{e['daily_quota_share']:.1%} of daily quota ({e['remaining_requests']} requests remaining)")
+        return (
+            f"{e['planned_calls']} calls x ~{self.est_tokens_per_call} tok = {e['total_tokens']} tokens; "
+            f"~{e['minutes_at_tpm']:.1f} min at {self.tpm_limit} TPM; "
+            f"{e['daily_quota_share']:.1%} of daily quota ({e['remaining_requests']} requests remaining)"
+        )
 
 
 # --------------------------------------------------------------------------- bootstrap
-def bootstrap_ci(values_or_ytrue: Sequence | np.ndarray, y_pred: Sequence | None = None,
-                 metric_fn: Callable | None = None, n: int = 2000, alpha: float = 0.05,
-                 seed: int = 0) -> tuple[float, float, float]:
+def bootstrap_ci(
+    values_or_ytrue: Sequence | np.ndarray,
+    y_pred: Sequence | None = None,
+    metric_fn: Callable | None = None,
+    n: int = 2000,
+    alpha: float = 0.05,
+    seed: int = 0,
+) -> tuple[float, float, float]:
     """Percentile bootstrap CI. Either bootstrap_ci(values[, metric_fn=np.mean]) or
     bootstrap_ci(y_true, y_pred, metric_fn). Returns (point, lo, hi)."""
     rng = np.random.default_rng(seed)

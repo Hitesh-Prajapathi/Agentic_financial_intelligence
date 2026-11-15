@@ -13,12 +13,14 @@ Known limits (documented, tested): a number that happens to coincide with an unr
 (false negative); derived numbers (sums, differences) are reported as unsupported by design, since the model is told
 not to do arithmetic (false positive when it does it correctly); plain integers below 1,000 must match exactly.
 """
+
 from __future__ import annotations
 
 import bisect
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 # ── citations ────────────────────────────────────────────────────────────────
 CITATION_PREFIXES = ("SEC", "RANK", "SENT", "RUN", "GRAPH", "CLUSTER")
@@ -53,23 +55,27 @@ def collect_sources(obj: Any) -> set[str]:
 # ── number extraction ────────────────────────────────────────────────────────
 _MONTHS = r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
 _IGNORE = [
-    re.compile(r"\b\d{10}-\d{2}-\d{6}\b"),                                   # accession numbers
-    re.compile(r"\bDEMO-\d+-\d+\b"),                                         # demo accession numbers
-    re.compile(r"\b\d{4}-\d{1,2}-\d{1,2}\b"),                                # ISO dates
-    re.compile(r"\b\d{4}-\d{2}\b"),                                          # year-month
-    re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b"),                         # 11/05, 11/05/2026 (and 4/A style is below)
-    re.compile(rf"\b{_MONTHS}\.?\s+\d{{1,2}}(?:st|nd|rd|th)?(?:,?\s+\d{{4}})?\b", re.I),   # Nov 5, November 5th, 2026
-    re.compile(rf"\b\d{{1,2}}(?:st|nd|rd|th)?\s+{_MONTHS}\b(?:\s+\d{{4}})?", re.I),          # 5 Nov 2026
-    re.compile(r"\b\d{1,2}:\d{2}(?::\d{2})?\b"),                             # times
+    re.compile(r"\b\d{10}-\d{2}-\d{6}\b"),  # accession numbers
+    re.compile(r"\bDEMO-\d+-\d+\b"),  # demo accession numbers
+    re.compile(r"\b\d{4}-\d{1,2}-\d{1,2}\b"),  # ISO dates
+    re.compile(r"\b\d{4}-\d{2}\b"),  # year-month
+    re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b"),  # 11/05, 11/05/2026 (and 4/A style is below)
+    re.compile(rf"\b{_MONTHS}\.?\s+\d{{1,2}}(?:st|nd|rd|th)?(?:,?\s+\d{{4}})?\b", re.I),  # Nov 5, November 5th, 2026
+    re.compile(rf"\b\d{{1,2}}(?:st|nd|rd|th)?\s+{_MONTHS}\b(?:\s+\d{{4}})?", re.I),  # 5 Nov 2026
+    re.compile(r"\b\d{1,2}:\d{2}(?::\d{2})?\b"),  # times
     re.compile(r"\b10b5-1\b|\b10b5\b", re.I),
-    re.compile(r"\bForms?\s+\d(?:\s*/\s*[A-Z])?(?:\s*(?:,|and|or|&)\s*\d)*\b", re.I),   # Form 4, Form 4/A, Forms 3, 4 and 5
-    re.compile(r"\b(?:10-[KQ]|8-K|S-\d|13[DGF]|Schedule\s+13[DG]|Rule\s+\d+[a-z0-9\-]*|Section\s+16(?:\([a-z]\))?)\b", re.I),
-    re.compile(r"\b(?:Q[1-4]|H[12]|FY\s?\d{2,4})\b"),                         # fiscal periods
-    re.compile(r"\bS&P\s*\d+\b", re.I),                                      # S&P 500
-    re.compile(r"#\s?\d+"),                                                  # rank markers
+    re.compile(
+        r"\bForms?\s+\d(?:\s*/\s*[A-Z])?(?:\s*(?:,|and|or|&)\s*\d)*\b", re.I
+    ),  # Form 4, Form 4/A, Forms 3, 4 and 5
+    re.compile(
+        r"\b(?:10-[KQ]|8-K|S-\d|13[DGF]|Schedule\s+13[DG]|Rule\s+\d+[a-z0-9\-]*|Section\s+16(?:\([a-z]\))?)\b", re.I
+    ),
+    re.compile(r"\b(?:Q[1-4]|H[12]|FY\s?\d{2,4})\b"),  # fiscal periods
+    re.compile(r"\bS&P\s*\d+\b", re.I),  # S&P 500
+    re.compile(r"#\s?\d+"),  # rank markers
     re.compile(r"\b(?:rank(?:ed)?|no\.|number)\s*#?\s*\d+\b", re.I),
-    re.compile(r"\b\d+(?:st|nd|rd|th)\b", re.I),                             # ordinals
-    re.compile(r"^\s*\d+[.)]\s", re.M),                                      # numbered-list markers
+    re.compile(r"\b\d+(?:st|nd|rd|th)\b", re.I),  # ordinals
+    re.compile(r"^\s*\d+[.)]\s", re.M),  # numbered-list markers
 ]
 
 _NUM_RE = re.compile(
@@ -77,17 +83,27 @@ _NUM_RE = re.compile(
     r"(?:(?P<pct>\s?%|\s?percent\b)|(?P<scale>\s?(?:thousand|million|billion|trillion|mln|bn|mm)\b|[kKmMbB]\b))?",
     re.I,
 )
-_SCALES = {"k": 1e3, "thousand": 1e3, "m": 1e6, "million": 1e6, "mln": 1e6, "mm": 1e6,
-           "b": 1e9, "billion": 1e9, "bn": 1e9, "trillion": 1e12}
+_SCALES = {
+    "k": 1e3,
+    "thousand": 1e3,
+    "m": 1e6,
+    "million": 1e6,
+    "mln": 1e6,
+    "mm": 1e6,
+    "b": 1e9,
+    "billion": 1e9,
+    "bn": 1e9,
+    "trillion": 1e12,
+}
 
 
 @dataclass(frozen=True)
 class Number:
-    raw: str          # as written in the text, e.g. "$17.4M"
-    value: float      # magnitude after applying K/M/B (sign is ignored on purpose)
-    kind: str         # 'usd' | 'pct' | 'plain'
+    raw: str  # as written in the text, e.g. "$17.4M"
+    value: float  # magnitude after applying K/M/B (sign is ignored on purpose)
+    kind: str  # 'usd' | 'pct' | 'plain'
     half_unit: float  # half a unit of the displayed precision, in absolute terms
-    loose: bool       # True when rounding tolerance applies (has $, %, comma, decimals or a K/M/B scale)
+    loose: bool  # True when rounding tolerance applies (has $, %, comma, decimals or a K/M/B scale)
 
 
 def _blank(text: str) -> str:
@@ -104,7 +120,7 @@ def extract_numbers(text: str) -> list[Number]:
     for m in _NUM_RE.finditer(clean):
         int_part, frac = m.group("int"), m.group("frac") or ""
         has_unit = bool(m.group("pct") or m.group("scale"))
-        before = clean[max(0, m.start() - 4):m.start()]
+        before = clean[max(0, m.start() - 4) : m.start()]
         pre = re.search(r"\$\s*[-+]?\s*$", before)
         usd = bool(pre)
         if not has_unit and not usd and not frac and "," not in int_part and 1900 <= int(int_part) <= 2100:
@@ -117,8 +133,7 @@ def extract_numbers(text: str) -> list[Number]:
         kind = "pct" if m.group("pct") else ("usd" if usd else "plain")
         loose = has_unit or usd or bool(frac) or "," in int_part
         raw = (pre.group(0).replace(" ", "") if pre else "") + m.group(0).strip()
-        out.append(Number(raw=raw, value=mant * mult, kind=kind,
-                          half_unit=0.5 * 10 ** (-decimals) * mult, loose=loose))
+        out.append(Number(raw=raw, value=mant * mult, kind=kind, half_unit=0.5 * 10 ** (-decimals) * mult, loose=loose))
     return out
 
 
@@ -167,7 +182,9 @@ class NumberPool:
         return False
 
 
-def build_pool(outcomes: list, question: str = "", history: list[dict] | None = None, evidence_text: str = "") -> NumberPool:
+def build_pool(
+    outcomes: list, question: str = "", history: list[dict] | None = None, evidence_text: str = ""
+) -> NumberPool:
     vals: list[float] = [n.value for n in extract_numbers(evidence_text)] if evidence_text else []
     for o in outcomes:
         result, args = _get(o, "result"), _get(o, "args")
@@ -175,7 +192,7 @@ def build_pool(outcomes: list, question: str = "", history: list[dict] | None = 
         if isinstance(result, dict) and isinstance(result.get("rows"), list):
             vals.append(float(len(result["rows"])))
     vals += [n.value for n in extract_numbers(question)]
-    for m in (history or []):
+    for m in history or []:
         if m.get("content"):
             vals += [n.value for n in extract_numbers(m["content"])]
     return NumberPool(vals)
@@ -190,7 +207,9 @@ _ABSTAIN_RE = re.compile(
     r"(don'?t|do not|doesn'?t|does not) (currently )?have (any )?(data|information|records)|no data|not available|"
     r"(couldn'?t|could not|can'?t|cannot|unable to|did not|didn'?t) (find|locate|answer|retrieve)|"
     r"no (matching |relevant )?(results|filings|records|trades|transactions|rows|clusters|insiders?)|nothing (matches|found)|"
-    r"not (covered|in the data)|outside (the scope|what)", re.I)
+    r"not (covered|in the data)|outside (the scope|what)",
+    re.I,
+)
 
 
 def is_abstention(answer: str) -> bool:
@@ -207,8 +226,14 @@ def _is_empty(result: Any) -> bool:
 
 
 # ── main entry ───────────────────────────────────────────────────────────────
-def check_grounding(answer: str, outcomes: list, question: str = "", history: list[dict] | None = None,
-                    evidence_text: str = "", extra_sources: Iterable[str] = ()) -> dict:
+def check_grounding(
+    answer: str,
+    outcomes: list,
+    question: str = "",
+    history: list[dict] | None = None,
+    evidence_text: str = "",
+    extra_sources: Iterable[str] = (),
+) -> dict:
     """``outcomes``: this turn's tool results (ToolOutcome objects or dicts with name/args/result/ok).
     Degraded mode has no tool results: it passes the SQL context as ``evidence_text`` and its tags as ``extra_sources``."""
     known: set[str] = set(extra_sources)
@@ -230,9 +255,12 @@ def check_grounding(answer: str, outcomes: list, question: str = "", history: li
     all_empty = (not evidence_text.strip()) if evidence_text else all(_is_empty(_get(o, "result")) for o in outcomes)
     states_facts = bool(nums or cited)
     return {
-        "supported": supported, "unsupported": unsupported,
-        "citations_valid": valid, "citations_invalid": invalid,
+        "supported": supported,
+        "unsupported": unsupported,
+        "citations_valid": valid,
+        "citations_invalid": invalid,
         "abstained": abstained,
         "empty_but_asserted": bool(all_empty and states_facts and not abstained),
-        "n_numbers": len(nums), "n_tool_calls": len(outcomes),
+        "n_numbers": len(nums),
+        "n_tool_calls": len(outcomes),
     }

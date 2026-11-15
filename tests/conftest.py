@@ -4,7 +4,9 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-os.chdir(ROOT)  # .env / relative data paths resolve from the project root; `insider_intel` comes from pythonpath=["src"]
+os.chdir(
+    ROOT
+)  # .env / relative data paths resolve from the project root; `insider_intel` comes from pythonpath=["src"]
 
 EDGAR_FIXTURES = ROOT / "tests" / "edgar" / "fixtures"  # reconstructed real + synthetic Form 4 XML (read-only)
 
@@ -12,6 +14,7 @@ EDGAR_FIXTURES = ROOT / "tests" / "edgar" / "fixtures"  # reconstructed real + s
 @pytest.fixture
 def db():
     from insider_intel.store.db import DBTool
+
     d = DBTool(":memory:")
     yield d
     d.close()
@@ -38,5 +41,12 @@ def fixture_source():
 @pytest.fixture
 def cfg():
     from insider_intel.config import Settings
-    return Settings(_env_file=None, rank_window_days=14, min_trade_notional=0, top_n_trades=5,
-                    edgar_max_runtime_minutes=0, sec_user_agent="unit-test-agent contact@test.invalid")
+
+    return Settings(
+        _env_file=None,
+        rank_window_days=14,
+        min_trade_notional=0,
+        top_n_trades=5,
+        edgar_max_runtime_minutes=0,
+        sec_user_agent="unit-test-agent contact@test.invalid",
+    )

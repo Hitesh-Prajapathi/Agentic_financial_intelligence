@@ -15,6 +15,7 @@ Query helpers:
 Owner lookup tries the CIK first (digits) and otherwise a normalised token-set name match, so
 "Kurtz George" == "George Kurtz" == "George R. Kurtz".
 """
+
 from __future__ import annotations
 
 import re
@@ -23,9 +24,24 @@ from datetime import date, datetime
 import pandas as pd
 
 _SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v", "md", "phd", "esq"}
-EDGE_COLUMNS = ["owner_cik", "owner_name", "issuer_cik", "issuer_ticker", "issuer_name", "is_director", "is_officer",
-                "is_ten_pct", "officer_title", "first_accepted_at", "last_accepted_at", "n_filings", "buy_value",
-                "sell_value", "n_buys", "n_sells"]
+EDGE_COLUMNS = [
+    "owner_cik",
+    "owner_name",
+    "issuer_cik",
+    "issuer_ticker",
+    "issuer_name",
+    "is_director",
+    "is_officer",
+    "is_ten_pct",
+    "officer_title",
+    "first_accepted_at",
+    "last_accepted_at",
+    "n_filings",
+    "buy_value",
+    "sell_value",
+    "n_buys",
+    "n_sells",
+]
 
 
 def normalize_name(name: str | None) -> frozenset[str]:
@@ -157,8 +173,9 @@ def resolve_issuer_ciks(db, issuer: str) -> list[str]:
         return [issuer.lstrip("0") or "0"]
     rows = db.query("SELECT DISTINCT issuer_cik FROM insider_edges WHERE issuer_ticker = ?", [issuer.upper()])
     if not rows:
-        rows = db.query("SELECT DISTINCT issuer_cik FROM insider_edges WHERE lower(issuer_name) LIKE ?",
-                        [f"%{issuer.lower()}%"])
+        rows = db.query(
+            "SELECT DISTINCT issuer_cik FROM insider_edges WHERE lower(issuer_name) LIKE ?", [f"%{issuer.lower()}%"]
+        )
     return sorted(r[0] for r in rows)
 
 
@@ -189,4 +206,6 @@ def co_insiders(db, issuer: str, since=None, exclude_owner: str | None = None) -
     if df.empty:
         return df.reset_index(drop=True)
     df = df.assign(_gross=df["buy_value"] + df["sell_value"])
-    return df.sort_values(["_gross", "owner_cik"], ascending=[False, True]).drop(columns="_gross").reset_index(drop=True)
+    return (
+        df.sort_values(["_gross", "owner_cik"], ascending=[False, True]).drop(columns="_gross").reset_index(drop=True)
+    )

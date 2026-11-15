@@ -5,6 +5,7 @@ path, not the same pandas code), so a bug or corrupted input is caught instead o
 A run failing any check is quarantined: its ranking is never written and chat never reads it.
 Zero LLM calls.
 """
+
 from __future__ import annotations
 
 import logging
@@ -36,13 +37,14 @@ def check_ingest_reconciliation(db, accessions: list[str], expected_txns: int) -
         return CheckResult("ingest_reconciliation", True, "no new filings this run")
     n_f = n_t = 0
     for i in range(0, len(accessions), 1000):  # chunked: a 2-week catch-up is ~15k accessions
-        chunk = accessions[i:i + 1000]
+        chunk = accessions[i : i + 1000]
         ph = ",".join("?" * len(chunk))
         n_f += db.query(f"SELECT COUNT(*) FROM filings WHERE accession_number IN ({ph})", chunk)[0][0]
         n_t += db.query(f"SELECT COUNT(*) FROM transactions WHERE accession_number IN ({ph})", chunk)[0][0]
     ok = n_f == len(accessions) and n_t == expected_txns
-    return CheckResult("ingest_reconciliation", ok,
-                       f"filings {n_f}/{len(accessions)}, transactions {n_t}/{expected_txns}")
+    return CheckResult(
+        "ingest_reconciliation", ok, f"filings {n_f}/{len(accessions)}, transactions {n_t}/{expected_txns}"
+    )
 
 
 def check_notional_reconciliation(db, window_start: datetime, stats: dict) -> CheckResult:
@@ -52,15 +54,20 @@ def check_notional_reconciliation(db, window_start: datetime, stats: dict) -> Ch
            FROM transactions t JOIN filings f USING (accession_number)
            WHERE {FILING_TS} >= ? AND t.code IN ('P','S') AND {NOT_SUPERSEDED}
              AND t.shares > 0 AND t.price_per_share > 0
-             AND f.issuer_ticker IS NOT NULL AND f.issuer_ticker <> ''""", [window_start])[0]
+             AND f.issuer_ticker IS NOT NULL AND f.issuer_ticker <> ''""",
+        [window_start],
+    )[0]
     sql_valid_rows, sql_total = int(row[0]), float(row[1])
     accounted = stats["notional_valid"] + stats["notional_inconsistent"]
     split_ok = abs(stats["notional_kept"] + stats["notional_dups"] - stats["notional_valid"]) <= TOL
     total_ok = abs(sql_total - accounted) <= TOL
     rows_ok = sql_valid_rows == (stats["rows_in"] - stats["dropped_invalid"])
-    return CheckResult("notional_reconciliation", split_ok and total_ok and rows_ok,
-                       f"sql=${sql_total:,.2f} vs ranked=${accounted:,.2f}; rows sql={sql_valid_rows} "
-                       f"vs pandas={stats['rows_in'] - stats['dropped_invalid']}")
+    return CheckResult(
+        "notional_reconciliation",
+        split_ok and total_ok and rows_ok,
+        f"sql=${sql_total:,.2f} vs ranked=${accounted:,.2f}; rows sql={sql_valid_rows} "
+        f"vs pandas={stats['rows_in'] - stats['dropped_invalid']}",
+    )
 
 
 def check_ticker_bounds(db, window_start: datetime, ranked: pd.DataFrame) -> CheckResult:
@@ -73,10 +80,14 @@ def check_ticker_bounds(db, window_start: datetime, ranked: pd.DataFrame) -> Che
             f"""SELECT COALESCE(SUM(CASE WHEN t.code='P' THEN t.shares*t.price_per_share END),0),
                       COALESCE(SUM(CASE WHEN t.code='S' THEN t.shares*t.price_per_share END),0)
                FROM transactions t JOIN filings f USING (accession_number)
-               WHERE {FILING_TS} >= ? AND f.issuer_ticker = ? AND {NOT_SUPERSEDED}""", [window_start, r.issuer_ticker])[0]
+               WHERE {FILING_TS} >= ? AND f.issuer_ticker = ? AND {NOT_SUPERSEDED}""",
+            [window_start, r.issuer_ticker],
+        )[0]
         if r.buy_value > float(row[0]) + TOL or r.sell_value > float(row[1]) + TOL:
             bad.append(r.issuer_ticker)
-    return CheckResult("ticker_bounds", not bad, f"violations: {bad}" if bad else f"{len(ranked)} tickers within bounds")
+    return CheckResult(
+        "ticker_bounds", not bad, f"violations: {bad}" if bad else f"{len(ranked)} tickers within bounds"
+    )
 
 
 def check_ranking_integrity(ranked: pd.DataFrame, top_n: int) -> CheckResult:
@@ -107,12 +118,23 @@ def check_checksum(ranked: pd.DataFrame, checksum: str) -> CheckResult:
     if ranked is None or ranked.empty:
         return CheckResult("checksum", True, "empty ranking")
     recomputed = compute_checksum(ranked.to_dict("records"))
-    return CheckResult("checksum", recomputed == checksum,
-                       "verified" if recomputed == checksum else f"stored {checksum[:10]}… ≠ recomputed {recomputed[:10]}…")
+    return CheckResult(
+        "checksum",
+        recomputed == checksum,
+        "verified" if recomputed == checksum else f"stored {checksum[:10]}… ≠ recomputed {recomputed[:10]}…",
+    )
 
 
-def run_all_checks(db, window_start: datetime, accessions: list[str], expected_txns: int,
-                   ranked: pd.DataFrame, checksum: str, stats: dict, top_n: int) -> tuple[bool, list[CheckResult]]:
+def run_all_checks(
+    db,
+    window_start: datetime,
+    accessions: list[str],
+    expected_txns: int,
+    ranked: pd.DataFrame,
+    checksum: str,
+    stats: dict,
+    top_n: int,
+) -> tuple[bool, list[CheckResult]]:
     results = [
         check_ingest_reconciliation(db, accessions, expected_txns),
         check_notional_reconciliation(db, window_start, stats),
@@ -121,11 +143,14 @@ def run_all_checks(db, window_start: datetime, accessions: list[str], expected_t
         check_checksum(ranked, checksum),
     ]
     for r in results:
-        (logger.info if r.passed else logger.error)("[INTEGRITY] %s: %s (%s)", r.name, "PASS" if r.passed else "FAIL", r.detail)
+        (logger.info if r.passed else logger.error)(
+            "[INTEGRITY] %s: %s (%s)", r.name, "PASS" if r.passed else "FAIL", r.detail
+        )
     return all(r.passed for r in results), results
 
 
 # ── quarantine ──────────────────────────────────────────────────────────────
+
 
 class QuarantineError(RuntimeError):
     """Raised when the governance gate fails. Carries the failed checks for the run record."""
@@ -137,12 +162,24 @@ class QuarantineError(RuntimeError):
 
 
 def quarantine_run(db, run_id: str, reason: str) -> None:
-    db.update_run(run_id, status="quarantined", completed_at=datetime.now(timezone.utc).replace(tzinfo=None),
-                  error_message=reason[:1000])
+    db.update_run(
+        run_id,
+        status="quarantined",
+        completed_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        error_message=reason[:1000],
+    )
     logger.warning("Run %s QUARANTINED: %s", run_id, reason)
 
 
 def gate(db, sec: dict, ranking: dict, top_n: int) -> tuple[bool, list[CheckResult]]:
     """Stage 3: run every integrity check over the ingest + ranking results."""
-    return run_all_checks(db, ranking["window_start"], sec["accessions"], sec["expected_txns"],
-                          ranking["ranked_df"], ranking["checksum"], ranking["stats"], top_n)
+    return run_all_checks(
+        db,
+        ranking["window_start"],
+        sec["accessions"],
+        sec["expected_txns"],
+        ranking["ranked_df"],
+        ranking["checksum"],
+        ranking["stats"],
+        top_n,
+    )

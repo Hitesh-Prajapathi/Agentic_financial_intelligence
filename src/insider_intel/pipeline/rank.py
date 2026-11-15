@@ -18,6 +18,7 @@ replaced by a later 4/A, and the SQL below excludes them. See `mark_superseded` 
 Window: filings accepted within the last `settings.rank_window_days` days (default 14, measured on the
 EDGAR acceptance time, which `filing_date` mirrors).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -38,8 +39,16 @@ PLANNED_THRESHOLD = 0.5
 
 def compute_checksum(records: list[dict]) -> str:
     """Canonical SHA-256 over the fields that define a ranking."""
-    canon = [[r["rank"], r["issuer_ticker"], round(float(r["net_dollar_value"]), 2),
-              round(float(r["buy_value"]), 2), round(float(r["sell_value"]), 2)] for r in records]
+    canon = [
+        [
+            r["rank"],
+            r["issuer_ticker"],
+            round(float(r["net_dollar_value"]), 2),
+            round(float(r["buy_value"]), 2),
+            round(float(r["sell_value"]), 2),
+        ]
+        for r in records
+    ]
     return hashlib.sha256(json.dumps(canon).encode()).hexdigest()
 
 
@@ -47,13 +56,22 @@ def _empty(stats: dict) -> tuple[pd.DataFrame, str, dict]:
     return pd.DataFrame(), hashlib.sha256(b"empty").hexdigest(), stats
 
 
-def validate_and_rank(rows: list[dict] | pd.DataFrame, top_n: int = 5,
-                      min_notional: float = 0.0) -> tuple[pd.DataFrame, str, dict]:
+def validate_and_rank(
+    rows: list[dict] | pd.DataFrame, top_n: int = 5, min_notional: float = 0.0
+) -> tuple[pd.DataFrame, str, dict]:
     """Return (ranked_df, checksum, stats). `stats` feeds the independent integrity checks."""
     df = pd.DataFrame(rows).copy() if not isinstance(rows, pd.DataFrame) else rows.copy()
-    stats = {"rows_in": len(df), "dropped_invalid": 0, "dropped_inconsistent": 0,
-             "dropped_joint_dups": 0, "notional_valid": 0.0, "notional_dups": 0.0, "notional_kept": 0.0,
-             "notional_inconsistent": 0.0, "tickers": 0}
+    stats = {
+        "rows_in": len(df),
+        "dropped_invalid": 0,
+        "dropped_inconsistent": 0,
+        "dropped_joint_dups": 0,
+        "notional_valid": 0.0,
+        "notional_dups": 0.0,
+        "notional_kept": 0.0,
+        "notional_inconsistent": 0.0,
+        "tickers": 0,
+    }
     if df.empty:
         return _empty(stats)
     for col in REQUIRED:
@@ -64,8 +82,13 @@ def validate_and_rank(rows: list[dict] | pd.DataFrame, top_n: int = 5,
     df["shares"] = pd.to_numeric(df["shares"], errors="coerce")
     df["price_per_share"] = pd.to_numeric(df["price_per_share"], errors="coerce")
     df["code"] = df["code"].astype(str).str.upper()
-    valid = (df["shares"] > 0) & (df["price_per_share"] > 0) & df["code"].isin(["P", "S"]) \
-        & df["issuer_ticker"].notna() & (df["issuer_ticker"].astype(str).str.len() > 0)
+    valid = (
+        (df["shares"] > 0)
+        & (df["price_per_share"] > 0)
+        & df["code"].isin(["P", "S"])
+        & df["issuer_ticker"].notna()
+        & (df["issuer_ticker"].astype(str).str.len() > 0)
+    )
     stats["dropped_invalid"] = int((~valid).sum())
     df = df[valid].copy()
     if df.empty:
@@ -106,8 +129,11 @@ def validate_and_rank(rows: list[dict] | pd.DataFrame, top_n: int = 5,
         df[col] = df[col].fillna(default).astype(str) if col in df.columns else default
     for col in ("is_officer", "is_director", "is_10b5_1"):
         df[col] = df[col].fillna(False).astype(bool) if col in df.columns else False
-    post = pd.to_numeric(df.get("post_transaction_shares"), errors="coerce") if "post_transaction_shares" in df.columns \
+    post = (
+        pd.to_numeric(df.get("post_transaction_shares"), errors="coerce")
+        if "post_transaction_shares" in df.columns
         else pd.Series(np.nan, index=df.index)
+    )
     # buy: share of the *resulting* position that was just bought; sell: share of the *prior* position sold
     denom = np.where(df["code"] == "P", post, post + df["shares"])
     df["pct_holdings"] = np.where((denom > 0), np.clip(df["shares"] / denom, 0, 1), np.nan)
@@ -147,21 +173,23 @@ def validate_and_rank(rows: list[dict] | pd.DataFrame, top_n: int = 5,
         if planned_pct >= PLANNED_THRESHOLD:
             tags.append("PLANNED_10b5-1")
 
-        out.append({
-            "issuer_ticker": ticker,
-            "issuer_name": str(g["issuer_name"].iloc[0]),
-            "insider_name": lead_name + (f" +{others} more" if others > 0 else ""),
-            "insider_title": str(lead_row["insider_title"]),
-            "net_dollar_value": net,
-            "buy_value": round(buy, 2),
-            "sell_value": round(sell, 2),
-            "transaction_count": int(len(g)),
-            "insider_count": int(g["insider_name"].nunique()),
-            "pct_holdings": None if pd.isna(pct) else round(float(pct), 4),
-            "planned_pct": round(planned_pct, 4),
-            "dominant_direction": direction,
-            "signal_tags": ",".join(tags),
-        })
+        out.append(
+            {
+                "issuer_ticker": ticker,
+                "issuer_name": str(g["issuer_name"].iloc[0]),
+                "insider_name": lead_name + (f" +{others} more" if others > 0 else ""),
+                "insider_title": str(lead_row["insider_title"]),
+                "net_dollar_value": net,
+                "buy_value": round(buy, 2),
+                "sell_value": round(sell, 2),
+                "transaction_count": int(len(g)),
+                "insider_count": int(g["insider_name"].nunique()),
+                "pct_holdings": None if pd.isna(pct) else round(float(pct), 4),
+                "planned_pct": round(planned_pct, 4),
+                "dominant_direction": direction,
+                "signal_tags": ",".join(tags),
+            }
+        )
 
     stats["tickers"] = len(out)
     if not out:
@@ -169,7 +197,9 @@ def validate_and_rank(rows: list[dict] | pd.DataFrame, top_n: int = 5,
 
     ranked = pd.DataFrame(out)
     ranked["abs_net"] = ranked["net_dollar_value"].abs()
-    ranked = ranked.sort_values(["abs_net", "issuer_ticker"], ascending=[False, True]).head(top_n).reset_index(drop=True)
+    ranked = (
+        ranked.sort_values(["abs_net", "issuer_ticker"], ascending=[False, True]).head(top_n).reset_index(drop=True)
+    )
     ranked["rank"] = np.arange(1, len(ranked) + 1)
     checksum = compute_checksum(ranked.to_dict("records"))
     return ranked, checksum, stats
@@ -201,8 +231,13 @@ def rank(db, settings) -> dict:
             for t in trades:
                 t["validation_checksum"] = checksum
         span.set(trades_ranked_count=len(trades))
-        return {"ranked_df": ranked, "checksum": checksum, "stats": stats,
-                "window_start": window_start, "top_trades": trades}
+        return {
+            "ranked_df": ranked,
+            "checksum": checksum,
+            "stats": stats,
+            "window_start": window_start,
+            "top_trades": trades,
+        }
 
 
 def publish(db, run_id: str, result: dict) -> int:

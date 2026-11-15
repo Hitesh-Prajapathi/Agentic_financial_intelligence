@@ -1,4 +1,5 @@
 """Governance gate over EDGAR-ingested data (offline)."""
+
 from datetime import date
 
 import pytest
@@ -15,9 +16,24 @@ def run(db, fixture_source, cfg):
 
 
 def _gate(db, sec, rk, cfg, **over):
-    args = dict(accessions=sec["accessions"], expected=sec["expected_txns"], ranked=rk["ranked_df"], cs=rk["checksum"], stats=rk["stats"])
+    args = dict(
+        accessions=sec["accessions"],
+        expected=sec["expected_txns"],
+        ranked=rk["ranked_df"],
+        cs=rk["checksum"],
+        stats=rk["stats"],
+    )
     args.update(over)
-    return run_all_checks(db, rk["window_start"], args["accessions"], args["expected"], args["ranked"], args["cs"], args["stats"], cfg.top_n_trades)
+    return run_all_checks(
+        db,
+        rk["window_start"],
+        args["accessions"],
+        args["expected"],
+        args["ranked"],
+        args["cs"],
+        args["stats"],
+        cfg.top_n_trades,
+    )
 
 
 def test_clean_run_passes_gate(db, run):

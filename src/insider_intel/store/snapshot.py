@@ -3,6 +3,7 @@
 Both functions open the database read-only with plain DuckDB, so they work on a snapshot that is behind the
 code's migrations (no migration, no write, no WAL left behind).
 """
+
 from __future__ import annotations
 
 import json
@@ -12,8 +13,15 @@ from pathlib import Path
 
 import duckdb
 
-SNAPSHOT_TABLES = ["top_trades", "insider_edges", "pipeline_runs", "filings", "transactions", "reporting_owners",
-                   "sentiment_summary"]
+SNAPSHOT_TABLES = [
+    "top_trades",
+    "insider_edges",
+    "pipeline_runs",
+    "filings",
+    "transactions",
+    "reporting_owners",
+    "sentiment_summary",
+]
 
 
 def _tables(con) -> set[str]:
@@ -82,8 +90,12 @@ def check_freshness(db_path: str, max_business_days: int = 5, now: datetime | No
         have = _tables(con)
         if "filings" not in have:
             return ["no filings table in snapshot"]
-        cols = {r[0] for r in con.execute(
-            "SELECT column_name FROM information_schema.columns WHERE table_name = 'filings'").fetchall()}
+        cols = {
+            r[0]
+            for r in con.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'filings'"
+            ).fetchall()
+        }
         col = "accepted_at" if "accepted_at" in cols else "filing_date"
         newest = con.execute(f"SELECT MAX(COALESCE({col}, filing_date)) FROM filings").fetchone()[0]
         if newest is None:
@@ -91,9 +103,13 @@ def check_freshness(db_path: str, max_business_days: int = 5, now: datetime | No
         else:
             n = weekdays_between(newest, now)
             if n > max_business_days:
-                problems.append(f"newest {col} is {newest:%Y-%m-%d %H:%M} UTC, {n} business days old (limit {max_business_days})")
+                problems.append(
+                    f"newest {col} is {newest:%Y-%m-%d %H:%M} UTC, {n} business days old (limit {max_business_days})"
+                )
         if "pipeline_runs" in have:
-            row = con.execute("SELECT status, started_at FROM pipeline_runs ORDER BY started_at DESC LIMIT 1").fetchone()
+            row = con.execute(
+                "SELECT status, started_at FROM pipeline_runs ORDER BY started_at DESC LIMIT 1"
+            ).fetchone()
             if row and row[0] in ("failed", "quarantined"):
                 problems.append(f"last pipeline run {row[1]:%Y-%m-%d %H:%M} UTC ended with status {row[0]}")
     finally:

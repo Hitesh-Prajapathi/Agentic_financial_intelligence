@@ -1,11 +1,12 @@
 """CLI: publish-snapshot, freshness, run --since / exit codes. Offline, temp databases."""
+
 import json
 from datetime import date, datetime
 
 import duckdb
 import pytest
-from ingest_testkit import FakeSource, day_ts, make_filing, recent_weekdays
 
+from ingest_testkit import FakeSource, day_ts, make_filing, recent_weekdays
 from insider_intel import cli
 from insider_intel.config import settings
 from insider_intel.pipeline.ingest import ingest
@@ -50,7 +51,7 @@ def test_publish_snapshot_skips_missing_tables_on_old_db(tmp_path):
 
 
 def test_weekdays_between():
-    assert weekdays_between(datetime(2026, 11, 13, 20), datetime(2026, 11, 16, 9)) == 1     # Fri -> Mon
+    assert weekdays_between(datetime(2026, 11, 13, 20), datetime(2026, 11, 16, 9)) == 1  # Fri -> Mon
     assert weekdays_between(datetime(2026, 11, 9), datetime(2026, 11, 13)) == 4
 
 
@@ -78,12 +79,14 @@ def test_cli_commands_and_exit_codes(tmp_path, cfg, capsys):
     p = seeded_db(tmp_path / "live.duckdb", cfg, status="success")
     assert cli.main(["freshness", "--db", p, "--max-business-days", "1000"]) == 0
     assert capsys.readouterr().out.strip() == "OK"
-    assert cli.main(["freshness", "--db", p, "--max-business-days", "0"]) == 1          # fixture data is in the past
+    assert cli.main(["freshness", "--db", p, "--max-business-days", "0"]) == 1  # fixture data is in the past
     assert capsys.readouterr().out.startswith("STALE:")
     assert cli.main(["publish-snapshot", "--db", p, "--out", str(tmp_path / "s")]) == 0
     assert (tmp_path / "s" / "manifest.json").exists() and (tmp_path / "s" / "top_trades.parquet").exists()
     # default --max-business-days is 5
-    assert cli.main(["freshness", "--db", p]) == (0 if weekdays_between(datetime(2026, 11, 12, 15), datetime.utcnow()) <= 5 else 1)
+    assert cli.main(["freshness", "--db", p]) == (
+        0 if weekdays_between(datetime(2026, 11, 12, 15), datetime.utcnow()) <= 5 else 1
+    )
 
 
 class _Sys:
@@ -120,6 +123,7 @@ def _fake_ingest(status_extra=None, seen=None):
         res = {"filings_ingested": 0, "accessions": [], "expected_txns": 0}
         res.update(status_extra or {})
         return res
+
     return fn
 
 
@@ -137,14 +141,17 @@ def test_run_partial_exits_zero_and_failed_or_quarantined_exit_nonzero(monkeypat
 
     def boom(*a, **k):
         raise RuntimeError("EDGAR down")
+
     _patch_system(monkeypatch, tmp_path / "f", cfg, ingest_fn=boom)
     assert cli.main(["run"]) == 1
 
     def bad_rank(db, c):
         from insider_intel.pipeline.rank import rank
+
         r = rank(db, c)
         r["checksum"] = "f" * 64
         return r
+
     # non-empty ranking so the corrupted checksum is actually verified
     d = recent_weekdays(1)[0]
     db, runner = _patch_system(monkeypatch, tmp_path / "q", cfg, rank_fn=bad_rank)

@@ -10,14 +10,41 @@ def tsv(cols, rows):
     return "\n".join(["\t".join(cols)] + ["\t".join(r) for r in rows]) + "\n"
 
 
-SUB = ["ACCESSION_NUMBER", "FILING_DATE", "PERIOD_OF_REPORT", "DATE_OF_ORIG_SUB", "NO_SECURITIES_OWNED",
-       "NOT_SUBJECT_SEC16", "FORM3_HOLDINGS_REPORTED", "FORM4_TRANS_REPORTED", "DOCUMENT_TYPE", "ISSUERCIK",
-       "ISSUERNAME", "ISSUERTRADINGSYMBOL", "REMARKS", "AFF10B5ONE"]
+SUB = [
+    "ACCESSION_NUMBER",
+    "FILING_DATE",
+    "PERIOD_OF_REPORT",
+    "DATE_OF_ORIG_SUB",
+    "NO_SECURITIES_OWNED",
+    "NOT_SUBJECT_SEC16",
+    "FORM3_HOLDINGS_REPORTED",
+    "FORM4_TRANS_REPORTED",
+    "DOCUMENT_TYPE",
+    "ISSUERCIK",
+    "ISSUERNAME",
+    "ISSUERTRADINGSYMBOL",
+    "REMARKS",
+    "AFF10B5ONE",
+]
 OWN = ["ACCESSION_NUMBER", "RPTOWNERCIK", "RPTOWNERNAME", "RPTOWNER_RELATIONSHIP", "RPTOWNER_TITLE"]
-NDT = ["ACCESSION_NUMBER", "NONDERIV_TRANS_SK", "SECURITY_TITLE", "TRANS_DATE", "DEEMED_EXECUTION_DATE",
-       "TRANS_FORMTYPE", "TRANS_CODE", "EQUITY_SWAP_INVOLVED", "TRANS_TIMELINESS", "TRANS_SHARES",
-       "TRANS_PRICEPERSHARE", "TRANS_ACQUIRED_DISP_CD", "SHRS_OWND_FOLWNG_TRANS", "VALU_OWND_FOLWNG_TRANS",
-       "DIRECT_INDIRECT_OWNERSHIP", "NATURE_OF_OWNERSHIP"]
+NDT = [
+    "ACCESSION_NUMBER",
+    "NONDERIV_TRANS_SK",
+    "SECURITY_TITLE",
+    "TRANS_DATE",
+    "DEEMED_EXECUTION_DATE",
+    "TRANS_FORMTYPE",
+    "TRANS_CODE",
+    "EQUITY_SWAP_INVOLVED",
+    "TRANS_TIMELINESS",
+    "TRANS_SHARES",
+    "TRANS_PRICEPERSHARE",
+    "TRANS_ACQUIRED_DISP_CD",
+    "SHRS_OWND_FOLWNG_TRANS",
+    "VALU_OWND_FOLWNG_TRANS",
+    "DIRECT_INDIRECT_OWNERSHIP",
+    "NATURE_OF_OWNERSHIP",
+]
 
 
 def ndt(acc, sk, date, code, sh, px, ad, post, di="D", title="Common Stock"):
@@ -27,23 +54,64 @@ def ndt(acc, sk, date, code, sh, px, ad, post, di="D", title="Common Stock"):
 @pytest.fixture
 def quarter_zip(tmp_path):
     files = {
-        "SUBMISSION.tsv": tsv(SUB, [
-            ["0001-25-000001", "05-JAN-2025", "03-JAN-2025", "", "", "", "", "", "4", "0000320193", "Apple", "aapl ", "", ""],
-            ["0001-25-000002", "06-JAN-2025", "03-JAN-2025", "", "", "", "", "", "4/A", "0000789019", "MSFT", "", "", ""],
-        ]),
-        "REPORTINGOWNER.tsv": tsv(OWN, [
-            ["0001-25-000001", "0001214156", "A", "Officer", "CEO"],
-            ["0001-25-000001", "0000000099", "B", "Director", ""],
-            ["0001-25-000002", "0000555", "C", "Director", ""],
-        ]),
+        "SUBMISSION.tsv": tsv(
+            SUB,
+            [
+                [
+                    "0001-25-000001",
+                    "05-JAN-2025",
+                    "03-JAN-2025",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "4",
+                    "0000320193",
+                    "Apple",
+                    "aapl ",
+                    "",
+                    "",
+                ],
+                [
+                    "0001-25-000002",
+                    "06-JAN-2025",
+                    "03-JAN-2025",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "4/A",
+                    "0000789019",
+                    "MSFT",
+                    "",
+                    "",
+                    "",
+                ],
+            ],
+        ),
+        "REPORTINGOWNER.tsv": tsv(
+            OWN,
+            [
+                ["0001-25-000001", "0001214156", "A", "Officer", "CEO"],
+                ["0001-25-000001", "0000000099", "B", "Director", ""],
+                ["0001-25-000002", "0000555", "C", "Director", ""],
+            ],
+        ),
         # file order is deliberately not SK order for accession 1
-        "NONDERIV_TRANS.tsv": tsv(NDT, [
-            ndt("0001-25-000001", "102", "03-JAN-2025", "S", "50", "12.5", "D", "950"),
-            ndt("0001-25-000001", "101", "02-JAN-2025", "P", "100", "10", "A", "1000", di="I"),
-            ndt("0001-25-000002", "103", "03-JAN-2025", "A", "7", "", "A", ""),
-        ]),
+        "NONDERIV_TRANS.tsv": tsv(
+            NDT,
+            [
+                ndt("0001-25-000001", "102", "03-JAN-2025", "S", "50", "12.5", "D", "950"),
+                ndt("0001-25-000001", "101", "02-JAN-2025", "P", "100", "10", "A", "1000", di="I"),
+                ndt("0001-25-000002", "103", "03-JAN-2025", "A", "7", "", "A", ""),
+            ],
+        ),
         "NONDERIV_HOLDING.tsv": tsv(["ACCESSION_NUMBER", "NONDERIV_HOLDING_SK"], []),
-        "FOOTNOTES.tsv": tsv(["ACCESSION_NUMBER", "FOOTNOTE_ID", "FOOTNOTE_TXT"], [["0001-25-000001", "F1", "it's \"quoted\""]]),
+        "FOOTNOTES.tsv": tsv(
+            ["ACCESSION_NUMBER", "FOOTNOTE_ID", "FOOTNOTE_TXT"], [["0001-25-000001", "F1", 'it\'s "quoted"']]
+        ),
         "readme.htm": "<html></html>",
     }
     p = tmp_path / "2025q3_form345.zip"
@@ -99,9 +167,12 @@ def test_malformed_rows_are_counted_not_silently_dropped(tmp_path):
 
     zp = tmp_path / "2099q1_form345.zip"
     with zipfile.ZipFile(zp, "w") as z:
-        z.writestr("SUBMISSION.tsv", "ACCESSION_NUMBER\tDOCUMENT_TYPE\tISSUERCIK\tISSUERTRADINGSYMBOL\n"
-                                     "0001-26-000001\t4\t123\tABC\n"
-                                     "0001-26-000002\t4\t124\tDEF\tEXTRA\tCOLS\n")
+        z.writestr(
+            "SUBMISSION.tsv",
+            "ACCESSION_NUMBER\tDOCUMENT_TYPE\tISSUERCIK\tISSUERTRADINGSYMBOL\n"
+            "0001-26-000001\t4\t123\tABC\n"
+            "0001-26-000002\t4\t124\tDEF\tEXTRA\tCOLS\n",
+        )
     con = load_quarter(zp)
     assert con.execute("SELECT COUNT(*) FROM raw_submission").fetchone()[0] == 1
     assert dict(con.execute("SELECT * FROM load_rejects").fetchall())["SUBMISSION"] == 1

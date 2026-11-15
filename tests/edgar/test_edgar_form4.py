@@ -4,6 +4,7 @@ Fixtures in tests/edgar/fixtures are either RECONSTRUCTED (real accession number
 real sec-api.io JSON) or SYNTHETIC (fictional, accession 0000000000-26-0000NN). See fixtures/README.md.
 Expected values below were typed by hand from the XML, not computed by the parser.
 """
+
 from datetime import date, datetime
 from pathlib import Path
 
@@ -77,8 +78,15 @@ def test_filing_level_fields(acc):
 # ---------------------------------------------------------------------------- row-level goldens
 def row(f, i):
     t = f.non_derivative[i]
-    return (t.transaction_date, t.code, t.shares, t.price_per_share, t.acquired_disposed,
-            t.post_transaction_shares, t.direct_indirect)
+    return (
+        t.transaction_date,
+        t.code,
+        t.shares,
+        t.price_per_share,
+        t.acquired_disposed,
+        t.post_transaction_shares,
+        t.direct_indirect,
+    )
 
 
 def test_simple_purchase():
@@ -90,7 +98,12 @@ def test_simple_purchase():
     assert o.officer_title == "Chief Executive Officer"
     assert row(f, 0) == (date(2026, 3, 10), "P", 1000.0, 12.5, "A", 51000.0, "D")
     t = f.non_derivative[0]
-    assert (t.security_title, t.form_type_in_txn, t.equity_swap, t.nature_of_ownership) == ("Common Stock", "4", False, None)
+    assert (t.security_title, t.form_type_in_txn, t.equity_swap, t.nature_of_ownership) == (
+        "Common Stock",
+        "4",
+        False,
+        None,
+    )
 
 
 def test_joint_filing_keeps_all_owners():
@@ -217,7 +230,10 @@ def test_real_multi_row_with_holdings_and_indirect_rows():
     assert f.owners[0].name == "HOLMES NED S" and f.owners[0].is_director and not f.owners[0].is_officer
     assert row(f, 0) == (date(2026, 11, 4), "S", 455.0, 73.9631, "A", 66070.0, "D")
     assert row(f, 1) == (date(2026, 11, 4), "S", 45.0, 74.7, "D", 66025.0, "D")
-    assert (f.non_derivative[2].direct_indirect, f.non_derivative[2].nature_of_ownership) == ("I", "By profit sharing plan")
+    assert (f.non_derivative[2].direct_indirect, f.non_derivative[2].nature_of_ownership) == (
+        "I",
+        "By profit sharing plan",
+    )
     assert f.non_derivative[4].nature_of_ownership == "As trustee of SSH trust for adult daughter"
     assert {t.code for t in f.non_derivative} == {"S"}
 
@@ -245,7 +261,12 @@ def test_real_exercise_and_sell_weighted_average():
 def test_real_trust_purchase_with_remarks():
     f = load("0001570585-26-000156")
     t = f.non_derivative[0]
-    assert (t.security_title, t.shares, t.price_per_share, t.post_transaction_shares) == ("Class A Common Shares", 211313.0, 9.4456, 602378.0)
+    assert (t.security_title, t.shares, t.price_per_share, t.post_transaction_shares) == (
+        "Class A Common Shares",
+        211313.0,
+        9.4456,
+        602378.0,
+    )
     assert (t.direct_indirect, t.nature_of_ownership, t.price_footnote_ids) == ("I", "By Trust", ["F1"])
     assert f.owners[0].officer_title == "EVP, Chief Technology Officer"
     assert f.remarks == "The trading symbols for the Issuer's classes of common shares are LBTYA, LBTYB, and LBTYK."
@@ -260,6 +281,7 @@ def test_real_same_day_m_and_s_big_issuer_short_cik():
 
 def test_real_fixture_meta_gives_acceptance_time_naive_utc():
     import json
+
     meta = json.loads((FIX / "0001193125-26-449032.meta.json").read_text())
     assert meta["accepted_at"] == "2026-11-05T16:15:01"  # 11:15:01 EST
 
@@ -270,10 +292,20 @@ def test_filing_to_rows_shape_and_sorted_owner_ciks():
     f = load("0000000000-26-000002", accepted_at=acc_at)
     r = filing_to_rows(f)[1]
     assert r == {
-        "accession_number": "0000000000-26-000002", "row_idx": 1, "form_type": "4", "accepted_at": acc_at,
-        "issuer_cik": "9000001", "issuer_ticker": "ACME", "owner_ciks": "9100003|9100004",
-        "transaction_date": date(2026, 3, 10), "code": "P", "shares": 10000.0, "price_per_share": 3.2,
-        "acquired_disposed": "A", "post_transaction_shares": 1035000.0, "direct_indirect": "I",
+        "accession_number": "0000000000-26-000002",
+        "row_idx": 1,
+        "form_type": "4",
+        "accepted_at": acc_at,
+        "issuer_cik": "9000001",
+        "issuer_ticker": "ACME",
+        "owner_ciks": "9100003|9100004",
+        "transaction_date": date(2026, 3, 10),
+        "code": "P",
+        "shares": 10000.0,
+        "price_per_share": 3.2,
+        "acquired_disposed": "A",
+        "post_transaction_shares": 1035000.0,
+        "direct_indirect": "I",
         "security_title": "Common Stock",
     }
 
@@ -292,7 +324,7 @@ def test_str_input_and_bom_and_namespace_tolerated():
 
 def test_sgml_wrapped_submission_text_is_unwrapped():
     xml = (FIX / "0000000000-26-000001.xml").read_text()
-    body = xml[xml.index("<ownershipDocument>"):]
+    body = xml[xml.index("<ownershipDocument>") :]
     wrapped = f"<SEC-DOCUMENT>\n<SEC-HEADER>\n<TYPE>4\n<XML>\n{body}</XML>\n</SEC-DOCUMENT>\n"
     assert parse_form4(wrapped, "0000000000-26-000001").owners[0].cik == "9100001"
 
@@ -305,9 +337,14 @@ def test_unusable_documents_raise_form4_parse_error(bad):
 
 def test_missing_issuer_or_owner_raises():
     with pytest.raises(Form4ParseError):
-        parse_form4("<ownershipDocument><reportingOwner><reportingOwnerId><rptOwnerCik>1</rptOwnerCik></reportingOwnerId></reportingOwner></ownershipDocument>", "0000000000-26-000001")
+        parse_form4(
+            "<ownershipDocument><reportingOwner><reportingOwnerId><rptOwnerCik>1</rptOwnerCik></reportingOwnerId></reportingOwner></ownershipDocument>",
+            "0000000000-26-000001",
+        )
     with pytest.raises(Form4ParseError):
-        parse_form4("<ownershipDocument><issuer><issuerCik>1</issuerCik></issuer></ownershipDocument>", "0000000000-26-000001")
+        parse_form4(
+            "<ownershipDocument><issuer><issuerCik>1</issuerCik></issuer></ownershipDocument>", "0000000000-26-000001"
+        )
 
 
 def test_mentions_trading_plan():

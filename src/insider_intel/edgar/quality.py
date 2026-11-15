@@ -1,4 +1,5 @@
 """Pure data-quality helpers over parsed Form 4 rows (dicts as produced by filing_to_rows)."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable

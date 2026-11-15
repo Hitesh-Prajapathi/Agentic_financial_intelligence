@@ -5,7 +5,16 @@ from insider_intel.market.event_study import build_events
 
 
 def rows(data):
-    cols = ["issuer_ticker", "owner_ciks", "code", "shares", "price_per_share", "accepted_at", "officer_title", "is_10b5_1"]
+    cols = [
+        "issuer_ticker",
+        "owner_ciks",
+        "code",
+        "shares",
+        "price_per_share",
+        "accepted_at",
+        "officer_title",
+        "is_10b5_1",
+    ]
     return pd.DataFrame(data, columns=cols)
 
 
@@ -59,7 +68,9 @@ def test_cluster_event_at_kth_owner_acceptance():
 
 
 def test_cluster_multi_owner_filing_and_unknown_owner():
-    df = rows([P("AAA", "1,2", "2024-01-02 15:00"), P("CCC", None, "2024-01-02 15:00"), P("CCC", None, "2024-01-03 15:00")])
+    df = rows(
+        [P("AAA", "1,2", "2024-01-02 15:00"), P("CCC", None, "2024-01-02 15:00"), P("CCC", None, "2024-01-03 15:00")]
+    )
     ev = build_events(df, "cluster_buy", k=2)
     assert list(ev["ticker"]) == ["AAA"]  # unknown owners never form a cluster
 
@@ -92,7 +103,13 @@ def test_sell_kinds_split_on_10b5_1_and_exclude_unknown():
 
 
 def test_min_price_and_large_buy_and_unknown_kind():
-    df = rows([P("AAA", "1", "2024-01-02 15:00", px=0.5), P("BBB", "2", "2024-01-02 15:00", sh=20000, px=10), P("CCC", "3", "2024-01-02 15:00")])
+    df = rows(
+        [
+            P("AAA", "1", "2024-01-02 15:00", px=0.5),
+            P("BBB", "2", "2024-01-02 15:00", sh=20000, px=10),
+            P("CCC", "3", "2024-01-02 15:00"),
+        ]
+    )
     assert set(build_events(df, "single_buy", min_price=1.0)["ticker"]) == {"BBB", "CCC"}
     assert list(build_events(df, "large_buy", min_value=100_000)["ticker"]) == ["BBB"]
     with pytest.raises(ValueError):

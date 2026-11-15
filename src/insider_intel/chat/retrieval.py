@@ -3,6 +3,7 @@
 Every number the chat model sees comes from SQL rows computed deterministically upstream.
 No LLM call is made here (routing is rule-based) to save latency and quota.
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,7 +16,27 @@ from insider_intel.obs import timed
 
 logger = logging.getLogger(__name__)
 _TOKEN = re.compile(r"\$?\b([A-Z]{1,5})\b")
-_STOP = {"I", "A", "THE", "AND", "OR", "ON", "IT", "AT", "IS", "AI", "US", "CEO", "CFO", "SEC", "USD", "BUY", "SELL", "PLAN", "ALL"}
+_STOP = {
+    "I",
+    "A",
+    "THE",
+    "AND",
+    "OR",
+    "ON",
+    "IT",
+    "AT",
+    "IS",
+    "AI",
+    "US",
+    "CEO",
+    "CFO",
+    "SEC",
+    "USD",
+    "BUY",
+    "SELL",
+    "PLAN",
+    "ALL",
+}
 
 
 def _usd(x) -> str:
@@ -68,17 +89,26 @@ class Retriever:
             lines = []
             for t in trades.itertuples():
                 tags = f" signals={t.signal_tags}" if t.signal_tags else ""
-                pct = f", largest trade = {t.pct_holdings:.0%} of that insider's position" if t.pct_holdings == t.pct_holdings and t.pct_holdings is not None else ""
+                pct = (
+                    f", largest trade = {t.pct_holdings:.0%} of that insider's position"
+                    if t.pct_holdings == t.pct_holdings and t.pct_holdings is not None
+                    else ""
+                )
                 lines.append(
                     f"#{t.rank} {t.issuer_ticker} ({t.issuer_name}): {t.dominant_direction}, net {_usd(t.net_dollar_value)} "
                     f"(bought {_usd(t.buy_value)}, sold {_usd(t.sell_value)}), {t.transaction_count} trades by {t.insider_count} insider(s); "
                     f"lead: {t.insider_name} ({t.insider_title}){pct}; {t.planned_pct:.0%} of $ under 10b5-1 plan;{tags} "
-                    f"[RANK {str(t.run_date)[:10]} #{t.rank}]")
+                    f"[RANK {str(t.run_date)[:10]} #{t.rank}]"
+                )
             parts.append("TOP INSIDER TRADES (open-market buys/sells, ranked by absolute net $):\n" + "\n".join(lines))
             rows_used += len(trades)
 
-        has_flag = bool(self.db.query("SELECT 1 FROM information_schema.columns WHERE table_name='transactions' "
-                                      "AND column_name='superseded' LIMIT 1"))  # always true after migrations; old DBs may lack it
+        has_flag = bool(
+            self.db.query(
+                "SELECT 1 FROM information_schema.columns WHERE table_name='transactions' "
+                "AND column_name='superseded' LIMIT 1"
+            )
+        )  # always true after migrations; old DBs may lack it
         live = "AND COALESCE(t.superseded, FALSE) = FALSE" if has_flag else ""
         focus = tickers or ([] if trades.empty else list(trades.issuer_ticker[:5]))
         for tk in focus:
@@ -89,21 +119,29 @@ class Retriever:
                    WHERE f.issuer_ticker = ? AND f.filing_date >= ? AND t.code IN ('P','S')
                      {live}
                    ORDER BY t.shares * t.price_per_share DESC LIMIT 6""",
-                [tk, datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=self.settings.rank_window_days)])
+                [tk, datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=self.settings.rank_window_days)],
+            )
             if not df.empty:
-                lines = [f"{'BUY' if r.code == 'P' else 'SELL'} {r.shares:,.0f} sh @ ${r.price_per_share:,.2f} = {_usd(r.shares * r.price_per_share)} "
-                         f"by {r.insider_name} ({r.insider_title}) on {r.transaction_date}{' [10b5-1 plan]' if r.is_10b5_1 else ''} "
-                         f"[SEC Form 4 {r.accession_number}]" for r in df.itertuples()]
+                lines = [
+                    f"{'BUY' if r.code == 'P' else 'SELL'} {r.shares:,.0f} sh @ ${r.price_per_share:,.2f} = {_usd(r.shares * r.price_per_share)} "
+                    f"by {r.insider_name} ({r.insider_title}) on {r.transaction_date}{' [10b5-1 plan]' if r.is_10b5_1 else ''} "
+                    f"[SEC Form 4 {r.accession_number}]"
+                    for r in df.itertuples()
+                ]
                 parts.append(f"LARGEST RECENT FILINGS FOR {tk}:\n" + "\n".join(lines))
                 rows_used += len(df)
             s = self.db.query(
                 """SELECT SUM(total_tweets), SUM(bullish_count), SUM(bearish_count), SUM(neutral_count),
                           SUM(sentiment_index * total_tweets) / NULLIF(SUM(total_tweets), 0), MIN(summary_date), MAX(summary_date)
-                   FROM sentiment_summary WHERE ticker = ?""", [tk])[0]
+                   FROM sentiment_summary WHERE ticker = ?""",
+                [tk],
+            )[0]
             if s[0]:
-                parts.append(f"SOCIAL SENTIMENT FOR {tk} (X/Twitter, AI-classified): {int(s[0])} tweets {s[5]}→{s[6]}: "
-                             f"{int(s[1])} bullish / {int(s[2])} bearish / {int(s[3])} neutral; net index {float(s[4]):+.2f} "
-                             f"(-1 bearish … +1 bullish) [SENT {tk}]")
+                parts.append(
+                    f"SOCIAL SENTIMENT FOR {tk} (X/Twitter, AI-classified): {int(s[0])} tweets {s[5]}→{s[6]}: "
+                    f"{int(s[1])} bullish / {int(s[2])} bearish / {int(s[3])} neutral; net index {float(s[4]):+.2f} "
+                    f"(-1 bearish … +1 bullish) [SENT {tk}]"
+                )
                 rows_used += 1
         return "\n\n".join(parts), rows_used
 
@@ -131,5 +169,12 @@ class Retriever:
                 conf, why = "high", "fresh data with multiple matching rows"
             span.set(retrieval_rows=rows)
             span.set(retrieval_confidence=conf)
-            return {"tickers": tickers, "sql_context": sql_ctx, "rows_used": rows, "confidence": conf,
-                    "confidence_reason": why, "as_of": as_of, "known_sources": citation_tags(sql_ctx)}
+            return {
+                "tickers": tickers,
+                "sql_context": sql_ctx,
+                "rows_used": rows,
+                "confidence": conf,
+                "confidence_reason": why,
+                "as_of": as_of,
+                "known_sources": citation_tags(sql_ctx),
+            }

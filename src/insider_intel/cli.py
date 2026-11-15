@@ -1,12 +1,13 @@
 """Command line:  python -m insider_intel <command>
 
-  run [--since YYYY-MM-DD] [--max-filings N]   ingest from EDGAR, rank, gate, publish (exit 0 on success/partial)
-  migrate                                      apply pending schema migrations to the live database
-  publish-snapshot --out DIR                   export derived tables to Parquet + manifest.json
-  freshness [--max-business-days N]            exit non-zero if the data is stale or the last run failed
-  check-keys                                   one tiny live call per external service
-  seed-demo                                    (re)build the fictional demo database
+run [--since YYYY-MM-DD] [--max-filings N]   ingest from EDGAR, rank, gate, publish (exit 0 on success/partial)
+migrate                                      apply pending schema migrations to the live database
+publish-snapshot --out DIR                   export derived tables to Parquet + manifest.json
+freshness [--max-business-days N]            exit non-zero if the data is stale or the last run failed
+check-keys                                   one tiny live call per external service
+seed-demo                                    (re)build the fictional demo database
 """
+
 from __future__ import annotations
 
 import argparse
@@ -23,8 +24,11 @@ def _run(args) -> int:
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     if not settings.has_sec_user_agent:
-        print("error: SEC_USER_AGENT is not set. SEC requires a descriptive User-Agent with contact info, e.g.\n"
-              "  export SEC_USER_AGENT='your-app-name your-email@example.com'", file=sys.stderr)
+        print(
+            "error: SEC_USER_AGENT is not set. SEC requires a descriptive User-Agent with contact info, e.g.\n"
+            "  export SEC_USER_AGENT='your-app-name your-email@example.com'",
+            file=sys.stderr,
+        )
         return 2
     system = build_system("live")
     kwargs = {}
@@ -43,7 +47,9 @@ def _run(args) -> int:
             logging.getLogger(__name__).exception("checkpoint failed")
     print(f"\nRun {out['run_id']} → {out['status']}")
     for name, st in system.pipeline.progress.snapshot()["stages"].items():
-        print(f"  {name:<10} {st['status']:<8} {st['seconds'] and round(st['seconds'], 1)}s  {st['detail'] if st['status'] not in ('ok',) else ''}")
+        print(
+            f"  {name:<10} {st['status']:<8} {st['seconds'] and round(st['seconds'], 1)}s  {st['detail'] if st['status'] not in ('ok',) else ''}"
+        )
     if out.get("error"):
         print("error:", out["error"])
     system.db.close()
@@ -111,7 +117,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="insider_intel", description="SEC Form 4 insider-trade intelligence")
     sub = parser.add_subparsers(dest="command", required=True)
     p = sub.add_parser("run", help="run the ingestion pipeline once against the live database")
-    p.add_argument("--since", type=_date, help="backfill: start the EDGAR index scan at this date instead of the watermark")
+    p.add_argument(
+        "--since", type=_date, help="backfill: start the EDGAR index scan at this date instead of the watermark"
+    )
     p.add_argument("--max-filings", type=int, help="cap new filings fetched this run (0 = unlimited)")
     p.set_defaults(func=_run)
     sub.add_parser("migrate", help="apply pending schema migrations to the live database").set_defaults(func=_migrate)

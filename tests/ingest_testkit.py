@@ -1,5 +1,7 @@
 """Offline EDGAR test helpers shared by tests/pipeline, tests/store and root-level tests."""
+
 from datetime import date, datetime, timedelta
+
 
 def recent_weekdays(n: int, before: date | None = None) -> list[date]:
     """The n most recent weekdays strictly before `before` (default today), oldest first."""
@@ -15,8 +17,18 @@ def day_ts(d: date, hour: int = 15) -> datetime:
     return datetime(d.year, d.month, d.day, hour, 0, 0)
 
 
-def make_filing(acc, *, issuer_cik="1000", ticker="AAA", form="4", accepted=None, owners=(("500", "Ann Lee"),),
-                txns=(), issuer_name="Aaa Inc", plan=False):
+def make_filing(
+    acc,
+    *,
+    issuer_cik="1000",
+    ticker="AAA",
+    form="4",
+    accepted=None,
+    owners=(("500", "Ann Lee"),),
+    txns=(),
+    issuer_name="Aaa Inc",
+    plan=False,
+):
     """Hand-built parsed Filing. txns: (code, shares, price, date[, acquired_disposed]) tuples."""
     from insider_intel.edgar.models import Filing, NonDerivTxn, ReportingOwner
 
@@ -24,19 +36,43 @@ def make_filing(acc, *, issuer_cik="1000", ticker="AAA", form="4", accepted=None
     for i, t in enumerate(txns):
         code, shares, price, d = t[:4]
         ad = t[4] if len(t) > 4 else ("A" if code in ("P", "A", "M") else "D")
-        rows.append(NonDerivTxn(row_idx=i, security_title="Common Stock", transaction_date=d, code=code, shares=shares,
-                                price_per_share=price, acquired_disposed=ad, post_transaction_shares=10_000.0,
-                                direct_indirect="D"))
-    return Filing(accession_number=acc, form_type=form, accepted_at=accepted, issuer_cik=issuer_cik,
-                  issuer_name=issuer_name, issuer_ticker=ticker, is_10b5_1=plan,
-                  owners=[ReportingOwner(cik=c, name=n, is_officer=True, officer_title="CEO") for c, n in owners],
-                  non_derivative=rows)
+        rows.append(
+            NonDerivTxn(
+                row_idx=i,
+                security_title="Common Stock",
+                transaction_date=d,
+                code=code,
+                shares=shares,
+                price_per_share=price,
+                acquired_disposed=ad,
+                post_transaction_shares=10_000.0,
+                direct_indirect="D",
+            )
+        )
+    return Filing(
+        accession_number=acc,
+        form_type=form,
+        accepted_at=accepted,
+        issuer_cik=issuer_cik,
+        issuer_name=issuer_name,
+        issuer_ticker=ticker,
+        is_10b5_1=plan,
+        owners=[ReportingOwner(cik=c, name=n, is_officer=True, officer_title="CEO") for c, n in owners],
+        non_derivative=rows,
+    )
 
 
 def make_entry(filing, day: date, form=None):
     from insider_intel.edgar.index import IndexEntry
-    return IndexEntry(form or filing.form_type, filing.issuer_name or "X", filing.issuer_cik, day,
-                      f"edgar/data/{filing.issuer_cik}/{filing.accession_number}.txt", filing.accession_number)
+
+    return IndexEntry(
+        form or filing.form_type,
+        filing.issuer_name or "X",
+        filing.issuer_cik,
+        day,
+        f"edgar/data/{filing.issuer_cik}/{filing.accession_number}.txt",
+        filing.accession_number,
+    )
 
 
 class FakeSource:
@@ -54,6 +90,7 @@ class FakeSource:
 
     def entries(self, day):
         from insider_intel.edgar.client import EdgarHTTPError
+
         self.index_calls.append(day)
         if day in self.blocked_days:
             raise EdgarHTTPError("503", 503)
@@ -61,6 +98,7 @@ class FakeSource:
 
     def load(self, entry):
         from insider_intel.edgar.client import EdgarHTTPError
+
         self.load_calls.append(entry.accession)
         if entry.accession in self.fail:
             raise EdgarHTTPError("503 for test", 503)

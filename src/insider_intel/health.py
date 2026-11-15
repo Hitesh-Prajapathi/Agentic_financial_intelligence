@@ -1,4 +1,5 @@
 """Live connectivity checks for every external service (used by the Health tab and `python -m insider_intel check-keys`)."""
+
 from __future__ import annotations
 
 import time

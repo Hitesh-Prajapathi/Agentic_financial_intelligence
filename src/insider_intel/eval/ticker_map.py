@@ -9,13 +9,15 @@ Rule per CIK:
   4. else unmapped.
 ``ticker_source`` is recorded per CIK so coverage can be reported by source.
 """
+
 from __future__ import annotations
 
 import json
 import time
 from collections import Counter
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .sec_datasets import norm_cik, norm_ticker
 
@@ -47,8 +49,12 @@ def parse_company_tickers(payload: Any) -> dict[str, list[str]]:
     return out
 
 
-def load_company_tickers(cache_path: str | Path = "data/cache/company_tickers.json", client=None,
-                         max_age_days: float = 30.0, force: bool = False) -> dict[str, list[str]]:
+def load_company_tickers(
+    cache_path: str | Path = "data/cache/company_tickers.json",
+    client=None,
+    max_age_days: float = 30.0,
+    force: bool = False,
+) -> dict[str, list[str]]:
     """Cached load. ``client`` is an edgar.client.EdgarClient (needs SEC_USER_AGENT); only used on a cache miss."""
     p = Path(cache_path)
     if p.exists() and not force and (time.time() - p.stat().st_mtime) / 86400 <= max_age_days:
@@ -85,8 +91,10 @@ def map_ciks(filing_tickers: dict[str, str | None], sec: dict[str, list[str]]) -
         "by_source": dict(src_counts),
         "share_current": (src_counts.get("cik_current", 0) / n) if n else None,
         "n_ticker_changed_vs_filing": sum(v["changed"] for v in out.values()),
-        "note": ("'filing_fallback' CIKs are absent from SEC's current ticker list (typically delisted/acquired "
-                 "issuers); their filing ticker may be missing from the price source or reassigned to another company."),
+        "note": (
+            "'filing_fallback' CIKs are absent from SEC's current ticker list (typically delisted/acquired "
+            "issuers); their filing ticker may be missing from the price source or reassigned to another company."
+        ),
     }
     return out, cov
 

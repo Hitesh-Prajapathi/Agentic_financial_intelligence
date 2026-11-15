@@ -12,6 +12,7 @@ what was and was not verified against live EDGAR):
   (NOT the ``xslF345X0N/...`` rendered path).
 * ``{accession}-index-headers.html`` carries ``<ACCEPTANCE-DATETIME>YYYYMMDDHHMMSS`` in US/Eastern.
 """
+
 from __future__ import annotations
 
 import json
@@ -125,9 +126,13 @@ def xml_candidates(index_json: dict) -> list[str]:
     items = (index_json.get("directory") or {}).get("item") or []
     names = [str(it.get("name", "")) for it in items]
     ok = [
-        n for n in names
-        if n.lower().endswith(".xml") and "/" not in n and not n.lower().startswith("xsl")
-        and "-index" not in n.lower() and n.lower() != "filingsummary.xml"
+        n
+        for n in names
+        if n.lower().endswith(".xml")
+        and "/" not in n
+        and not n.lower().startswith("xsl")
+        and "-index" not in n.lower()
+        and n.lower() != "filingsummary.xml"
     ]
     # Prefer names that look like Form 4 documents (form4.xml, doc4.xml, wf-form4_*.xml, ...).
     return sorted(ok, key=lambda n: (0 if "4" in n.lower() else 1, n))
@@ -247,7 +252,9 @@ def fetch_filing_txt(client: EdgarClient, cik: str | int, accession: str) -> Fil
         client.write_cached(accession, xml, ".xml")
         client.write_cached(
             accession,
-            json.dumps({"cik": str(cik), "xml_name": None, "accepted_at": accepted_at.isoformat() if accepted_at else None}).encode(),
+            json.dumps(
+                {"cik": str(cik), "xml_name": None, "accepted_at": accepted_at.isoformat() if accepted_at else None}
+            ).encode(),
             ".meta.json",
         )
     return FilingDocument(accession, str(cik), xml, accepted_at, None)

@@ -1,4 +1,5 @@
 """Run the Streamlit script in-process (demo mode, no network, temp databases) and assert it renders without errors."""
+
 from pathlib import Path
 
 import pytest
@@ -36,11 +37,13 @@ def test_app_renders_in_demo_mode(tmp_path, monkeypatch):
 
 def _scripted_llm_cls():
     from insider_intel.llm.client import LLMTool
+
     return type("_ScriptedToolLLM", (_ScriptedMixin, LLMTool), {})
 
 
 class _ScriptedMixin:
     """Stands in for LLMTool (keeps its stats etc.): one top_trades call, then a canned answer. No network."""
+
     last_label = "fake:tool-model"
 
     def __init__(self, cfg, answer):
@@ -55,6 +58,7 @@ class _ScriptedMixin:
 
     def chat_tools(self, messages, tools, tool_choice="auto", **kw):
         from insider_intel.llm.client import LLMResult, ToolCall
+
         self.step += 1
         if self.step == 1:
             return LLMResult("", "fake", "tool-model", 1, 1, 1, [ToolCall("c1", "top_trades", '{"n": 2}')])

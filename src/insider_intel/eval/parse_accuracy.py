@@ -1,8 +1,10 @@
 """E1: parse-accuracy scorer (parsed Form 4 rows vs SEC official Insider Transactions Data Sets)."""
+
 from __future__ import annotations
 
 import math
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -13,11 +15,31 @@ from .sec_datasets import OFFICIAL_COLUMNS, norm_cik, norm_owner_ciks, norm_tick
 REL_TOL = 1e-4
 MIN_SIM = 3.0  # of 5 match-features must agree for two rows to be considered the same transaction
 NUM_FIELDS = ["shares", "price_per_share", "post_transaction_shares"]
-STR_FIELDS = ["form_type", "issuer_cik", "issuer_ticker", "owner_ciks", "code", "acquired_disposed",
-              "direct_indirect", "security_title"]
+STR_FIELDS = [
+    "form_type",
+    "issuer_cik",
+    "issuer_ticker",
+    "owner_ciks",
+    "code",
+    "acquired_disposed",
+    "direct_indirect",
+    "security_title",
+]
 DATE_FIELDS = ["transaction_date"]
-FIELDS = ["form_type", "issuer_cik", "issuer_ticker", "owner_ciks", "transaction_date", "code", "shares",
-          "price_per_share", "acquired_disposed", "post_transaction_shares", "direct_indirect", "security_title"]
+FIELDS = [
+    "form_type",
+    "issuer_cik",
+    "issuer_ticker",
+    "owner_ciks",
+    "transaction_date",
+    "code",
+    "shares",
+    "price_per_share",
+    "acquired_disposed",
+    "post_transaction_shares",
+    "direct_indirect",
+    "security_title",
+]
 
 
 # ------------------------------------------------------------------ normalisation
@@ -55,7 +77,11 @@ def normalise(df: pd.DataFrame) -> pd.DataFrame:
     src = df.reset_index(drop=True)
     d["accession_number"] = src["accession_number"].astype(str).str.strip()
     d["row_idx"] = pd.to_numeric(src.get("row_idx", pd.Series(range(len(src)))), errors="coerce").fillna(1e9)
-    d["form_type"] = src["form_type"].map(lambda v: None if _isnull(v) else str(v).strip().upper() or None) if "form_type" in src else None
+    d["form_type"] = (
+        src["form_type"].map(lambda v: None if _isnull(v) else str(v).strip().upper() or None)
+        if "form_type" in src
+        else None
+    )
     d["issuer_cik"] = src["issuer_cik"].map(norm_cik) if "issuer_cik" in src else None
     d["issuer_ticker"] = src["issuer_ticker"].map(norm_ticker) if "issuer_ticker" in src else None
     d["owner_ciks"] = src["owner_ciks"].map(norm_owner_ciks) if "owner_ciks" in src else None
@@ -127,7 +153,7 @@ def match_accession(parsed: pd.DataFrame, official: pd.DataFrame) -> list[tuple[
     if parsed.empty or official.empty:
         return []
     P = parsed.to_dict("records")
-    O = official.to_dict("records")
+    O = official.to_dict("records")  # noqa: E741  (P/O = parsed/official, mirrors the cost matrix axes)
     cost = np.zeros((len(P), len(O)))
     sim = np.zeros_like(cost)
     for i, p in enumerate(P):
@@ -190,18 +216,42 @@ def score(parsed_df: pd.DataFrame, official_df: pd.DataFrame, hard: set[str] | N
                         rounding_only[f] += 1
                 else:
                     row_ok = False
-                    mismatches.append({"accession_number": a, "row_idx": int(o.at[j, "row_idx"]), "field": f,
-                                       "ours": _show(p.at[i, f]), "official": _show(o.at[j, f]), "kind": "field"})
+                    mismatches.append(
+                        {
+                            "accession_number": a,
+                            "row_idx": int(o.at[j, "row_idx"]),
+                            "field": f,
+                            "ours": _show(p.at[i, f]),
+                            "official": _show(o.at[j, f]),
+                            "kind": "field",
+                        }
+                    )
             tp_strict += row_ok
             all_ok &= row_ok
         for j in range(len(o)):
             if j not in mo:
-                mismatches.append({"accession_number": a, "row_idx": int(o.at[j, "row_idx"]), "field": "__row__",
-                                   "ours": None, "official": _row_repr(o.loc[j]), "kind": "missing_row"})
+                mismatches.append(
+                    {
+                        "accession_number": a,
+                        "row_idx": int(o.at[j, "row_idx"]),
+                        "field": "__row__",
+                        "ours": None,
+                        "official": _row_repr(o.loc[j]),
+                        "kind": "missing_row",
+                    }
+                )
         for i in range(len(p)):
             if i not in mp:
-                mismatches.append({"accession_number": a, "row_idx": int(p.at[i, "row_idx"]), "field": "__row__",
-                                   "ours": _row_repr(p.loc[i]), "official": None, "kind": "extra_row"})
+                mismatches.append(
+                    {
+                        "accession_number": a,
+                        "row_idx": int(p.at[i, "row_idx"]),
+                        "field": "__row__",
+                        "ours": _row_repr(p.loc[i]),
+                        "official": None,
+                        "kind": "extra_row",
+                    }
+                )
         filing_ok[a] = bool(all_ok)
         filing_recall[a] = (len(pairs), len(o))
 
@@ -217,7 +267,8 @@ def score(parsed_df: pd.DataFrame, official_df: pd.DataFrame, hard: set[str] | N
     # like-for-like: our shares and prices rounded to 2 decimals, as the official dataset stores them
     par_cents = par_scored.assign(
         price_per_share=pd.to_numeric(par_scored["price_per_share"], errors="coerce").round(2),
-        shares=pd.to_numeric(par_scored["shares"], errors="coerce").round(2))
+        shares=pd.to_numeric(par_scored["shares"], errors="coerce").round(2),
+    )
     fpc = _flow_by_ticker(par_cents)
     tick = fo.index.union(fp.index).union(fpc.index)
     err_c = (fpc.reindex(tick).fillna(0.0) - fo.reindex(tick).fillna(0.0)).abs()
@@ -241,8 +292,11 @@ def score(parsed_df: pd.DataFrame, official_df: pd.DataFrame, hard: set[str] | N
             return {"n": 0, "filing_exact_rate": None, "row_recall": None}
         m = sum(filing_recall[a][0] for a in accessions)
         t = sum(filing_recall[a][1] for a in accessions)
-        return {"n": n, "filing_exact_rate": sum(filing_ok[a] for a in accessions) / n,
-                "row_recall": m / t if t else None}
+        return {
+            "n": n,
+            "filing_exact_rate": sum(filing_ok[a] for a in accessions) / n,
+            "row_recall": m / t if t else None,
+        }
 
     first = off.drop_duplicates("accession_number").set_index("accession_number")
     amend = [a for a in accs if first.at[a, "form_type"] == "4/A"]
@@ -257,14 +311,24 @@ def score(parsed_df: pd.DataFrame, official_df: pd.DataFrame, hard: set[str] | N
         "shares_rounding_only": rounding_only["shares"],
         "parsed_accessions_not_in_official": len(parsed_extra_accs),
         "field_exact_match": {f: (field_ok[f] / n_matched if n_matched else None) for f in FIELDS},
-        "row_precision": prec, "row_recall": rec, "row_f1": f1,
-        "row_precision_strict": sprec, "row_recall_strict": srec, "row_f1_strict": sf1,
+        "row_precision": prec,
+        "row_recall": rec,
+        "row_f1": f1,
+        "row_precision_strict": sprec,
+        "row_recall_strict": srec,
+        "row_f1_strict": sf1,
         "filing_all_correct_rate": (sum(filing_ok.values()) / len(accs)) if accs else 0.0,
         "net_flow": flow,
         "amendments_4A": subset_stats(amend),
         "joint_filers": subset_stats(joint),
-        **({"hard_cases": subset_stats([a for a in accs if a in hard]),
-            "random_cases": subset_stats([a for a in accs if a not in hard])} if hard is not None else {}),
+        **(
+            {
+                "hard_cases": subset_stats([a for a in accs if a in hard]),
+                "random_cases": subset_stats([a for a in accs if a not in hard]),
+            }
+            if hard is not None
+            else {}
+        ),
         "mismatches": mismatches,
     }
 
@@ -276,18 +340,34 @@ def _show(v: Any):
 
 
 def _row_repr(r: pd.Series) -> str:
-    return (f"{r['transaction_date']} {r['code']} {r['shares']}@{r['price_per_share']} "
-            f"{r['acquired_disposed']} {r['issuer_ticker']}")
+    return (
+        f"{r['transaction_date']} {r['code']} {r['shares']}@{r['price_per_share']} "
+        f"{r['acquired_disposed']} {r['issuer_ticker']}"
+    )
 
 
 # ------------------------------------------------------------------ reporting
 def write_report(result: dict, writer, metadata: dict | None = None, notes: str = "", max_mismatches: int = 500):
     """Write the scorer result through a harness.ReportWriter."""
     fields = [{"field": f, "exact_match_rate": v} for f, v in result["field_exact_match"].items()]
-    summary = [{"metric": k, "value": result[k]} for k in (
-        "n_accessions", "n_official_rows", "n_parsed_rows", "n_matched_rows", "row_precision", "row_recall",
-        "row_f1", "row_precision_strict", "row_recall_strict", "row_f1_strict", "filing_all_correct_rate",
-        "price_rounding_only", "shares_rounding_only")]
+    summary = [
+        {"metric": k, "value": result[k]}
+        for k in (
+            "n_accessions",
+            "n_official_rows",
+            "n_parsed_rows",
+            "n_matched_rows",
+            "row_precision",
+            "row_recall",
+            "row_f1",
+            "row_precision_strict",
+            "row_recall_strict",
+            "row_f1_strict",
+            "filing_all_correct_rate",
+            "price_rounding_only",
+            "shares_rounding_only",
+        )
+    ]
     flow = [{"metric": k, "value": v} for k, v in result["net_flow"].items()]
     sub = [{"subset": "4/A", **result["amendments_4A"]}, {"subset": "joint filers", **result["joint_filers"]}]
     for key, label in (("hard_cases", "hard-case sample"), ("random_cases", "random sample")):
@@ -303,17 +383,24 @@ def write_report(result: dict, writer, metadata: dict | None = None, notes: str 
     metrics["n_mismatches"] = len(mm)
     return writer.write(
         metrics=metrics,
-        tables={"Summary": summary, "Per-field exact match": fields, "Net open-market dollar flow error": flow,
-                "Amendment / joint-filer handling": sub, "Mismatch categories": cat_rows,
-                f"Mismatches (first {max_mismatches})": mm[:max_mismatches]},
-        notes=notes or ("Official datasets derive from the same XML, so this measures parser fidelity, "
-                        "not filer truthfulness."),
-        metadata=metadata)
+        tables={
+            "Summary": summary,
+            "Per-field exact match": fields,
+            "Net open-market dollar flow error": flow,
+            "Amendment / joint-filer handling": sub,
+            "Mismatch categories": cat_rows,
+            f"Mismatches (first {max_mismatches})": mm[:max_mismatches],
+        },
+        notes=notes
+        or ("Official datasets derive from the same XML, so this measures parser fidelity, not filer truthfulness."),
+        metadata=metadata,
+    )
 
 
 # ------------------------------------------------------------------ sampling + CLI
-def sample_accessions(official_df: pd.DataFrame, sample_n: int = 1000, hard_n: int = 100,
-                      seed: int = 0) -> tuple[list[str], set[str]]:
+def sample_accessions(
+    official_df: pd.DataFrame, sample_n: int = 1000, hard_n: int = 100, seed: int = 0
+) -> tuple[list[str], set[str]]:
     """Stratified sample of Form 4 / 4/A accessions: (sample_n - hard_n) random + hard_n hard cases.
 
     Hard = joint filer (>1 owner), 4/A, >5 rows, or any row with missing price.
@@ -321,29 +408,39 @@ def sample_accessions(official_df: pd.DataFrame, sample_n: int = 1000, hard_n: i
     """
     df = official_df[official_df["form_type"].isin(["4", "4/A"])]
     g = df.groupby("accession_number")
-    info = pd.DataFrame({
-        "n_rows": g.size(),
-        "amend": g["form_type"].first() == "4/A",
-        "joint": g["owner_ciks"].first().map(lambda v: isinstance(v, str) and "|" in v),
-        "noprice": g["price_per_share"].apply(lambda s: bool(s.isna().any())),
-    })
+    info = pd.DataFrame(
+        {
+            "n_rows": g.size(),
+            "amend": g["form_type"].first() == "4/A",
+            "joint": g["owner_ciks"].first().map(lambda v: isinstance(v, str) and "|" in v),
+            "noprice": g["price_per_share"].apply(lambda s: bool(s.isna().any())),
+        }
+    )
     info["hard"] = info["amend"] | info["joint"] | (info["n_rows"] > 5) | info["noprice"]
     rng = np.random.default_rng(seed)
     hard = sorted(info.index[info["hard"]])
     easy = sorted(info.index[~info["hard"]])
     hard_pick = list(rng.permutation(hard)[:hard_n])
     rest = sample_n - len(hard_pick)
-    easy_pick = list(rng.permutation(easy)[:max(rest, 0)])
+    easy_pick = list(rng.permutation(easy)[: max(rest, 0)])
     # if there are too few easy ones, fill from remaining hard
     if len(easy_pick) < rest:
         left = [a for a in hard if a not in set(hard_pick)]
-        hard_pick += list(rng.permutation(left)[:rest - len(easy_pick)])
+        hard_pick += list(rng.permutation(left)[: rest - len(easy_pick)])
     return sorted(map(str, hard_pick + easy_pick)), set(map(str, hard_pick))
 
 
-def run(year: int, q: int, sample_n: int = 1000, hard_n: int = 100, seed: int = 0,
-        parser: Callable[[str], list[dict]] | None = None, data_dir: str = "data/sec_datasets",
-        reports_root: str = "reports", write: bool = True) -> dict:
+def run(
+    year: int,
+    q: int,
+    sample_n: int = 1000,
+    hard_n: int = 100,
+    seed: int = 0,
+    parser: Callable[[str], list[dict]] | None = None,
+    data_dir: str = "data/sec_datasets",
+    reports_root: str = "reports",
+    write: bool = True,
+) -> dict:
     """Download+load the quarter, sample accessions, and (if a parser is given) score it."""
     from .harness import ReportWriter
     from .sec_datasets import download_quarter, load_quarter, official_rows
@@ -367,11 +464,17 @@ def run(year: int, q: int, sample_n: int = 1000, hard_n: int = 100, seed: int = 
     res = score(parsed, sample)
     out["result"] = res
     if write:
-        write_report(res, ReportWriter(f"parse_accuracy/{year}q{q}", root=reports_root),
-                     metadata={"dataset": f"sec_insider_transactions_{year}q{q}",
-                               "dataset_sha256": __import__("hashlib").sha256(open(zpath, "rb").read()).hexdigest(),
-                               "seed": seed,
-                               "sample_n": sample_n, "hard_n": hard_n,
-                               "n_parser_errors": len(out.get("parser_errors", {})),
-                               "official_rows_rejected_at_load": rejects})
+        write_report(
+            res,
+            ReportWriter(f"parse_accuracy/{year}q{q}", root=reports_root),
+            metadata={
+                "dataset": f"sec_insider_transactions_{year}q{q}",
+                "dataset_sha256": __import__("hashlib").sha256(open(zpath, "rb").read()).hexdigest(),
+                "seed": seed,
+                "sample_n": sample_n,
+                "hard_n": hard_n,
+                "n_parser_errors": len(out.get("parser_errors", {})),
+                "official_rows_rejected_at_load": rejects,
+            },
+        )
     return out

@@ -14,31 +14,70 @@ def one(text):
 
 
 # ── extraction ───────────────────────────────────────────────────────────────
-@pytest.mark.parametrize("text,value,kind", [
-    ("$17.4M", 17.4e6, "usd"), ("$17.4 million", 17.4e6, "usd"), ("$1.2B", 1.2e9, "usd"), ("1.2 billion", 1.2e9, "plain"),
-    ("$150K", 150e3, "usd"), ("$17,375,692", 17375692, "usd"), ("43%", 43, "pct"), ("43.5 percent", 43.5, "pct"),
-    ("180,000 shares", 180000, "plain"), ("$52.40", 52.4, "usd"), ("-$8.7M", 8.7e6, "usd"), ("$-8,762,500", 8762500, "usd"),
-    ("(1,200)", 1200, "plain"), ("3 insiders", 3, "plain"), ("+0.67", 0.67, "plain"),
-])
+@pytest.mark.parametrize(
+    "text,value,kind",
+    [
+        ("$17.4M", 17.4e6, "usd"),
+        ("$17.4 million", 17.4e6, "usd"),
+        ("$1.2B", 1.2e9, "usd"),
+        ("1.2 billion", 1.2e9, "plain"),
+        ("$150K", 150e3, "usd"),
+        ("$17,375,692", 17375692, "usd"),
+        ("43%", 43, "pct"),
+        ("43.5 percent", 43.5, "pct"),
+        ("180,000 shares", 180000, "plain"),
+        ("$52.40", 52.4, "usd"),
+        ("-$8.7M", 8.7e6, "usd"),
+        ("$-8,762,500", 8762500, "usd"),
+        ("(1,200)", 1200, "plain"),
+        ("3 insiders", 3, "plain"),
+        ("+0.67", 0.67, "plain"),
+    ],
+)
 def test_extracts_numbers(text, value, kind):
     n = one(text)
     assert n.value == pytest.approx(value) and n.kind == kind
 
 
-@pytest.mark.parametrize("text", [
-    "in 2026", "on 2026-11-05", "filed 11/05/2026", "Nov 5, 2026", "November 5th", "5 Nov 2026", "at 14:30",
-    "accession 0001193125-26-449032", "DEMO-26-00001", "ranked #1", "the #2 trade", "rank 3", "No. 4",
-    "the 1st and 2nd", "a Rule 10b5-1 plan", "a Form 4", "Form 4/A", "Forms 3, 4 and 5", "the 10-K", "Q3", "FY2026", "S&P 500",
-    "[RANK 2026-11-05 #1]", "[SEC Form 4 0001193125-26-449032]", "[GRAPH 0000000003]", "[CLUSTER GLBX BUY 2026-11-11]",
-    "1. first item",
-])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "in 2026",
+        "on 2026-11-05",
+        "filed 11/05/2026",
+        "Nov 5, 2026",
+        "November 5th",
+        "5 Nov 2026",
+        "at 14:30",
+        "accession 0001193125-26-449032",
+        "DEMO-26-00001",
+        "ranked #1",
+        "the #2 trade",
+        "rank 3",
+        "No. 4",
+        "the 1st and 2nd",
+        "a Rule 10b5-1 plan",
+        "a Form 4",
+        "Form 4/A",
+        "Forms 3, 4 and 5",
+        "the 10-K",
+        "Q3",
+        "FY2026",
+        "S&P 500",
+        "[RANK 2026-11-05 #1]",
+        "[SEC Form 4 0001193125-26-449032]",
+        "[GRAPH 0000000003]",
+        "[CLUSTER GLBX BUY 2026-11-11]",
+        "1. first item",
+    ],
+)
 def test_ignores_non_claims(text):
     assert extract_numbers(text) == []
 
 
 def test_decimal_and_comma_edge_cases():
     assert [n.value for n in extract_numbers("buys of 1,000, 2,500 and 3.5")] == [1000, 2500, 3.5]
-    assert [n.value for n in extract_numbers("a v2 model and gpt5")] == []   # digits glued to words are not numbers
+    assert [n.value for n in extract_numbers("a v2 model and gpt5")] == []  # digits glued to words are not numbers
     assert [n.value for n in extract_numbers("**$1.5M** bought")] == [1.5e6]  # markdown bold
 
 
@@ -126,19 +165,30 @@ def test_citations_must_exist_in_this_turns_tool_results():
 
 
 def test_citation_normalisation_and_new_prefixes():
-    assert citation_tags("x [**RANK 2026‑11‑05 #1**] 【SENT BROS】 [GRAPH 123] [CLUSTER A BUY 2026-01-01] [RUN r1] [other]") == {
-        "RANK 2026-11-05 #1", "SENT BROS", "GRAPH 123", "CLUSTER A BUY 2026-01-01", "RUN r1"}
+    assert citation_tags(
+        "x [**RANK 2026‑11‑05 #1**] 【SENT BROS】 [GRAPH 123] [CLUSTER A BUY 2026-01-01] [RUN r1] [other]"
+    ) == {"RANK 2026-11-05 #1", "SENT BROS", "GRAPH 123", "CLUSTER A BUY 2026-01-01", "RUN r1"}
     o = outcome(rows=[{"source": "GRAPH 0000000003"}])
     assert g("Priya [GRAPH 0000000003]", o)["citations_valid"] == ["GRAPH 0000000003"]
 
 
 def test_citations_from_a_previous_turn_are_invalid_this_turn():
-    assert g("see [RANK 2026-11-05 #1]", outcome(rows=[{"source": "SENT X"}]))["citations_invalid"] == ["RANK 2026-11-05 #1"]
+    assert g("see [RANK 2026-11-05 #1]", outcome(rows=[{"source": "SENT X"}]))["citations_invalid"] == [
+        "RANK 2026-11-05 #1"
+    ]
 
 
 # ── abstention ───────────────────────────────────────────────────────────────
-@pytest.mark.parametrize("text", ["I don't have data on that.", "I do not have any data for ZZZZ.", "No matching filings were found.",
-                                  "That is not available in this database.", "I couldn't find anything."])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "I don't have data on that.",
+        "I do not have any data for ZZZZ.",
+        "No matching filings were found.",
+        "That is not available in this database.",
+        "I couldn't find anything.",
+    ],
+)
 def test_abstention_phrases(text):
     assert is_abstention(text)
 
@@ -148,9 +198,12 @@ def test_empty_results_with_asserted_facts_is_flagged():
     assert g("ZZZZ insiders bought $5M of shares.", empty)["empty_but_asserted"] is True
     assert g("I don't have data on that.", empty)["empty_but_asserted"] is False
     assert g("I don't have data on that.", empty)["abstained"] is True
-    assert g("Hello! Ask me about insider trades.", empty)["empty_but_asserted"] is False       # no facts stated
-    assert g("It was [RANK 2026-11-05 #1].", empty)["empty_but_asserted"] is True               # a citation is a claim
-    assert g("ZZZZ saw $5M", {"name": "t", "args": {}, "ok": False, "result": {}, "error": "x"})["empty_but_asserted"] is True
+    assert g("Hello! Ask me about insider trades.", empty)["empty_but_asserted"] is False  # no facts stated
+    assert g("It was [RANK 2026-11-05 #1].", empty)["empty_but_asserted"] is True  # a citation is a claim
+    assert (
+        g("ZZZZ saw $5M", {"name": "t", "args": {}, "ok": False, "result": {}, "error": "x"})["empty_but_asserted"]
+        is True
+    )
     assert g("5M", outcome())["empty_but_asserted"] is False
 
 
@@ -160,8 +213,12 @@ def test_no_tool_calls_and_numbers_is_flagged():
 
 def test_evidence_text_mode_for_degraded_answers():
     ev = "#1 ACME: net $1,234,567 [RANK 2026-11-05 #1]"
-    r = check_grounding("ACME net $1.23M [RANK 2026-11-05 #1] and $9M", [], evidence_text=ev, extra_sources={"RANK 2026-11-05 #1"})
-    assert r["unsupported"] == ["$9M"] and r["citations_valid"] == ["RANK 2026-11-05 #1"] and not r["empty_but_asserted"]
+    r = check_grounding(
+        "ACME net $1.23M [RANK 2026-11-05 #1] and $9M", [], evidence_text=ev, extra_sources={"RANK 2026-11-05 #1"}
+    )
+    assert (
+        r["unsupported"] == ["$9M"] and r["citations_valid"] == ["RANK 2026-11-05 #1"] and not r["empty_but_asserted"]
+    )
 
 
 def test_result_shape():

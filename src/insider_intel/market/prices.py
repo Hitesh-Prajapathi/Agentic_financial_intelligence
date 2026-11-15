@@ -18,6 +18,7 @@ Endpoints verified 2026-11-13 (see also docs/event_study_prereg.md):
 
 Returns in the event study are computed from ``adj_close``.
 """
+
 from __future__ import annotations
 
 import io
@@ -26,20 +27,17 @@ import re
 import time
 import zipfile
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Callable, Iterable
 
 import duckdb
 import pandas as pd
 
 USER_AGENT = "insider-intel-research-dev"
 PRICE_COLUMNS = ["date", "open", "high", "low", "close", "adj_close", "volume"]
-FF_URL = (
-    "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
-    "F-F_Research_Data_Factors_daily_CSV.zip"
-)
+FF_URL = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_daily_CSV.zip"
 
 
 class ProviderError(RuntimeError):
@@ -172,9 +170,7 @@ def parse_yahoo_chart(payload: dict) -> pd.DataFrame:
     quote = r["indicators"]["quote"][0]
     adj = (r["indicators"].get("adjclose") or [{}])[0].get("adjclose") or quote.get("close")
     off = int((r.get("meta") or {}).get("gmtoffset", 0))
-    dates = [
-        datetime.fromtimestamp(int(t) + off, tz=timezone.utc).date() for t in ts
-    ]  # exchange-local calendar date
+    dates = [datetime.fromtimestamp(int(t) + off, tz=timezone.utc).date() for t in ts]  # exchange-local calendar date
     df = pd.DataFrame(
         {
             "date": pd.to_datetime(dates),
@@ -459,7 +455,9 @@ def parse_ff_daily_csv(text: str) -> pd.DataFrame:
     return df.dropna().reset_index(drop=True)
 
 
-def fama_french_daily(cache_dir="data/prices", max_age_days: float = 30, force: bool = False, client=None) -> pd.DataFrame:
+def fama_french_daily(
+    cache_dir="data/prices", max_age_days: float = 30, force: bool = False, client=None
+) -> pd.DataFrame:
     """Daily FF3 factors (decimal), cached as parquet; refreshed when older than ``max_age_days``."""
     import httpx
 

@@ -21,22 +21,34 @@ What differs from the live pipeline (all deliberate, all documented in docs/even
 Per-quarter reduced rows (P/S only) are cached as parquet so the multi-GB quarterly extractions are only
 needed once.  Nothing here deletes anything.
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
-import numpy as np
 import pandas as pd
 
-from .sec_datasets import _d, _n, download_quarter, load_quarter, norm_cik, norm_owner_ciks, norm_ticker
+from .sec_datasets import _d, download_quarter, load_quarter, norm_cik, norm_owner_ciks, norm_ticker
 from .ticker_map import map_ciks, most_common_filing_ticker
 
 INFO_HOUR_UTC = 23  # 23:00 UTC is 18:00 (EST) / 19:00 (EDT) on the same Eastern calendar date
-ROW_COLUMNS = ["accession_number", "form_type", "issuer_cik", "issuer_ticker", "owner_ciks", "officer_title",
-               "filing_date", "aff_10b5_1", "transaction_date", "code", "shares", "price_per_share"]
+ROW_COLUMNS = [
+    "accession_number",
+    "form_type",
+    "issuer_cik",
+    "issuer_ticker",
+    "owner_ciks",
+    "officer_title",
+    "filing_date",
+    "aff_10b5_1",
+    "transaction_date",
+    "code",
+    "shares",
+    "price_per_share",
+]
 
 
 def parse_aff(v) -> bool | None:
@@ -71,22 +83,27 @@ def extract_quarter_rows(con) -> tuple[pd.DataFrame, dict]:
     have_trans = bool(_cols(con, "nonderiv_trans"))
     info = {"aff10b5one_column_present": "AFF10B5ONE" in sub_cols, "n_load_rejects": 0}
     try:
-        info["n_load_rejects"] = int(con.execute("SELECT coalesce(sum(rejected_rows),0) FROM load_rejects").fetchone()[0])
+        info["n_load_rejects"] = int(
+            con.execute("SELECT coalesce(sum(rejected_rows),0) FROM load_rejects").fetchone()[0]
+        )
     except Exception:
         pass
     if not have_trans or "ACCESSION_NUMBER" not in sub_cols:
         return pd.DataFrame(columns=ROW_COLUMNS), info
     aff = "NULLIF(trim(s.AFF10B5ONE),'')" if "AFF10B5ONE" in sub_cols else "NULL::VARCHAR"
     title = "NULLIF(trim(RPTOWNER_TITLE),'')" if "RPTOWNER_TITLE" in own_cols else "NULL::VARCHAR"
-    owners = (f"SELECT ACCESSION_NUMBER AS acc, string_agg(trim(RPTOWNERCIK), '|') AS owners, "
-              f"string_agg({title}, ' | ') AS titles FROM raw_reportingowner GROUP BY 1"
-              if "RPTOWNERCIK" in own_cols else "SELECT NULL::VARCHAR AS acc, NULL::VARCHAR AS owners, NULL::VARCHAR AS titles WHERE false")
+    owners = (
+        f"SELECT ACCESSION_NUMBER AS acc, string_agg(trim(RPTOWNERCIK), '|') AS owners, "
+        f"string_agg({title}, ' | ') AS titles FROM raw_reportingowner GROUP BY 1"
+        if "RPTOWNERCIK" in own_cols
+        else "SELECT NULL::VARCHAR AS acc, NULL::VARCHAR AS owners, NULL::VARCHAR AS titles WHERE false"
+    )
     df = con.execute(f"""
         WITH o AS ({owners})
         SELECT t.ACCESSION_NUMBER AS accession_number, upper(trim(s.DOCUMENT_TYPE)) AS form_type,
                s.ISSUERCIK AS issuer_cik, s.ISSUERTRADINGSYMBOL AS issuer_ticker,
                o.owners AS owner_ciks, o.titles AS officer_title,
-               {_d('s.FILING_DATE')} AS filing_date, {aff} AS aff_raw,
+               {_d("s.FILING_DATE")} AS filing_date, {aff} AS aff_raw,
                t.trans_date AS transaction_date, upper(trim(t.trans_code)) AS code,
                t.trans_shares AS shares, t.trans_price AS price_per_share
         FROM nonderiv_trans t
@@ -122,8 +139,13 @@ def quarter_status(year: int, q: int, data_dir="data/sec_datasets", cache_dir="d
     return "zip" if zp.exists() and zipfile.is_zipfile(zp) else "missing"
 
 
-def load_quarter_rows(year: int, q: int, data_dir="data/sec_datasets", cache_dir="data/cache/event_rows",
-                      downloader: Callable | None = None) -> tuple[pd.DataFrame, dict]:
+def load_quarter_rows(
+    year: int,
+    q: int,
+    data_dir="data/sec_datasets",
+    cache_dir="data/cache/event_rows",
+    downloader: Callable | None = None,
+) -> tuple[pd.DataFrame, dict]:
     from ..market.prices import read_parquet, write_parquet
 
     data_dir, cache_dir = Path(data_dir), Path(cache_dir)
@@ -132,7 +154,9 @@ def load_quarter_rows(year: int, q: int, data_dir="data/sec_datasets", cache_dir
         df = read_parquet(pq)
         df["filing_date"] = pd.to_datetime(df["filing_date"])
         df["transaction_date"] = pd.to_datetime(df["transaction_date"])
-        df["aff_10b5_1"] = pd.Series([None if pd.isna(v) else bool(v) for v in df["aff_10b5_1"]], index=df.index, dtype=object)
+        df["aff_10b5_1"] = pd.Series(
+            [None if pd.isna(v) else bool(v) for v in df["aff_10b5_1"]], index=df.index, dtype=object
+        )
         return df, json.loads(js.read_text())
     zpath = (downloader or download_quarter)(year, q, data_dir)
     con = load_quarter(zpath)
@@ -153,8 +177,11 @@ def info_timestamp(filing_date: pd.Series) -> pd.Series:
     return pd.to_datetime(filing_date).dt.normalize() + pd.Timedelta(hours=INFO_HOUR_UTC)
 
 
-def build_event_rows(quarter_frames: list[pd.DataFrame], sec_tickers: dict[str, list[str]] | None = None,
-                     quarter_infos: list[dict] | None = None) -> tuple[pd.DataFrame, dict]:
+def build_event_rows(
+    quarter_frames: list[pd.DataFrame],
+    sec_tickers: dict[str, list[str]] | None = None,
+    quarter_infos: list[dict] | None = None,
+) -> tuple[pd.DataFrame, dict]:
     """Concatenate quarters -> rows for ``market.event_study.build_events`` + a funnel/coverage dict.
 
     Output columns add ``accepted_at`` (stamp above), ``is_10b5_1`` (True/False/None), ``filing_ticker`` and
@@ -193,5 +220,10 @@ def build_event_rows(quarter_frames: list[pd.DataFrame], sec_tickers: dict[str, 
         q = sells["filing_date"].dt.to_period("Q").astype(str)
         for k, g in sells.groupby(q):
             by_q[k] = {"sell_rows": int(len(g)), "with_flag": int(g["is_10b5_1"].notna().sum())}
-    return rows, {"funnel": funnel, "ticker_mapping": cov, "aff10b5one_by_filing_quarter": by_q,
-                  "quarters": quarter_infos or [], "info_timestamp_rule": f"FILING_DATE {INFO_HOUR_UTC}:00 UTC (after the close, same Eastern date)"}
+    return rows, {
+        "funnel": funnel,
+        "ticker_mapping": cov,
+        "aff10b5one_by_filing_quarter": by_q,
+        "quarters": quarter_infos or [],
+        "info_timestamp_rule": f"FILING_DATE {INFO_HOUR_UTC}:00 UTC (after the close, same Eastern date)",
+    }

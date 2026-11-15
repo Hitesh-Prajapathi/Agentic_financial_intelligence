@@ -1,10 +1,12 @@
 """Shared helpers for the evaluation CLI: SEC User-Agent guard, request-budget estimate, JSON coercion."""
+
 from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 
@@ -24,7 +26,8 @@ def require_sec_user_agent(env: dict | None = None) -> str:
     if not ua:
         raise MissingUserAgent(
             f"{USER_AGENT_ENV} is not set; no request was made. SEC requires a descriptive User-Agent "
-            f"with contact info, e.g.\n  export {USER_AGENT_ENV}='your-app-name you@example.com'")
+            f"with contact info, e.g.\n  export {USER_AGENT_ENV}='your-app-name you@example.com'"
+        )
     return ua
 
 

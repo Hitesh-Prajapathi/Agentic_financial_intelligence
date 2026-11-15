@@ -1,4 +1,5 @@
 """The E2a golden-set seed is well-formed: gold SQL runs on the fixture, expected tools/args are real."""
+
 import json
 import re
 from pathlib import Path
@@ -18,8 +19,18 @@ def test_seed_shape():
     assert 15 <= len(ROWS) <= 25 and len({r["id"] for r in ROWS}) == len(ROWS)
     assert {r["category"] for r in ROWS} == CATS
     for r in ROWS:
-        assert {"id", "category", "question", "gold_sql", "expected_tool", "expected_tools", "expected_args", "abstain",
-                "tolerance", "answer_type"} <= set(r)
+        assert {
+            "id",
+            "category",
+            "question",
+            "gold_sql",
+            "expected_tool",
+            "expected_tools",
+            "expected_args",
+            "abstain",
+            "tolerance",
+            "answer_type",
+        } <= set(r)
 
 
 @pytest.mark.parametrize("row", ROWS, ids=lambda r: r["id"])
@@ -30,16 +41,18 @@ def test_row_is_consistent(row):
     assert row["expected_tool"] == row["expected_tools"][0]
     for name, args in row["expected_args"].items():
         assert name in REG.specs
-        REG.specs[name].args.model_validate(args)          # expected args are valid for the tool
+        REG.specs[name].args.model_validate(args)  # expected args are valid for the tool
     assert set(row["expected_tools"]) <= set(REG.specs)
 
 
 @pytest.mark.parametrize("row", [r for r in ROWS if r["gold_sql"]], ids=lambda r: r["id"])
 def test_gold_sql_runs_and_is_reproducible(row):
     sql = row["gold_sql"]
-    assert re.match(r"\s*SELECT\b", sql) and not re.search(r"now\(\)|current_date|current_timestamp|today\(\)", sql, re.I)
+    assert re.match(r"\s*SELECT\b", sql) and not re.search(
+        r"now\(\)|current_date|current_timestamp|today\(\)", sql, re.I
+    )
     rows = MemDB().query(sql)
     if row["abstain"]:
-        assert not rows or all(v in (0, None) for v in rows[0])      # nothing in the data supports an answer
+        assert not rows or all(v in (0, None) for v in rows[0])  # nothing in the data supports an answer
     else:
         assert rows and any(v is not None for v in rows[0]), row["id"]

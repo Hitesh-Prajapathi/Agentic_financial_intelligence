@@ -1,10 +1,11 @@
 """CLI runners for E1: live parse accuracy vs the official SEC quarter, and the offline fixture regression check."""
+
 from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -40,8 +41,13 @@ def _normalise_parsed(rows: list[dict]) -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------- live
-def run_live(args, *, client_factory: Callable[..., EdgarClient] = EdgarClient,
-             downloader: Callable | None = None, out: Callable[[str], None] = print) -> int:
+def run_live(
+    args,
+    *,
+    client_factory: Callable[..., EdgarClient] = EdgarClient,
+    downloader: Callable | None = None,
+    out: Callable[[str], None] = print,
+) -> int:
     """Returns a process exit code. 0 ok, 2 refused (needs --yes), 4 aborted (SEC blocked us)."""
     require_sec_user_agent()  # raises MissingUserAgent BEFORE any request
     download = downloader or sd.download_quarter
@@ -56,6 +62,7 @@ def run_live(args, *, client_factory: Callable[..., EdgarClient] = EdgarClient,
 
     client = client_factory(cache_dir=args.cache_dir)
     try:
+
         def cached(a: str) -> bool:
             try:
                 return client.cache_path(a).exists()
@@ -66,13 +73,15 @@ def run_live(args, *, client_factory: Callable[..., EdgarClient] = EdgarClient,
         skipped_cap: list[str] = []
         if args.max_fetch is not None and len(uncached) > args.max_fetch:
             rng = np.random.default_rng(args.seed)
-            keep = set(rng.permutation(uncached)[:args.max_fetch])
+            keep = set(rng.permutation(uncached)[: args.max_fetch])
             skipped_cap = sorted(set(uncached) - keep)
             uncached = [a for a in uncached if a in keep]
         todo = [a for a in accs if a not in set(skipped_cap)]
-        plan = FetchPlan(f"{len(uncached)} uncached filings of {len(accs)} sampled "
-                         f"({len(accs) - len(uncached) - len(skipped_cap)} cached, {len(skipped_cap)} skipped by --max-fetch)",
-                         REQUESTS_PER_FILING_COLD * len(uncached))
+        plan = FetchPlan(
+            f"{len(uncached)} uncached filings of {len(accs)} sampled "
+            f"({len(accs) - len(uncached) - len(skipped_cap)} cached, {len(skipped_cap)} skipped by --max-fetch)",
+            REQUESTS_PER_FILING_COLD * len(uncached),
+        )
         if not confirm_plan(plan, args.yes, out):
             return 2
 
@@ -102,23 +111,39 @@ def run_live(args, *, client_factory: Callable[..., EdgarClient] = EdgarClient,
                 parser_errors[a] = f"{type(exc).__name__}: {exc}"
         sample_scored = sample[sample["accession_number"].isin(set(scored))]
         res = score(_normalise_parsed(rows), sample_scored, hard=hard & set(scored))
-        notes = ["Official datasets derive from the same XML, so this measures parser fidelity, not filer truthfulness.",
-                 f"Sampled {len(accs)} accessions; scored {len(scored)}. Excluded from scoring (NOT parser errors): "
-                 f"{len(fetch_failed)} fetch failures, {len(skipped_cap)} not fetched because of --max-fetch.",
-                 f"Parser exceptions counted against the parser: {len(parser_errors)}."]
+        notes = [
+            "Official datasets derive from the same XML, so this measures parser fidelity, not filer truthfulness.",
+            f"Sampled {len(accs)} accessions; scored {len(scored)}. Excluded from scoring (NOT parser errors): "
+            f"{len(fetch_failed)} fetch failures, {len(skipped_cap)} not fetched because of --max-fetch.",
+            f"Parser exceptions counted against the parser: {len(parser_errors)}.",
+        ]
         for label, d in (("Fetch failures", fetch_failed), ("Parser errors", parser_errors)):
             if d:
                 notes.append(f"{label} (first 30): " + "; ".join(f"{k}: {v}" for k, v in list(d.items())[:30]))
         path = write_report(
-            res, ReportWriter(f"parse_accuracy/{args.year}q{args.quarter}", root=args.reports_root), notes="\n\n".join(notes),
-            metadata={"dataset": f"sec_insider_transactions_{args.year}q{args.quarter}",
-                      "dataset_sha256": _sha256(Path(zpath)), "seed": args.seed, "sample_n": args.sample,
-                      "hard_n": args.hard, "n_sampled": len(accs), "n_scored": len(scored),
-                      "n_fetch_failed": len(fetch_failed), "n_skipped_max_fetch": len(skipped_cap),
-                      "n_parser_errors": len(parser_errors), "http_requests": client.request_count,
-                      "official_rows_rejected_at_load": rejects, "cache_dir": str(args.cache_dir)})
-        out(f"row F1 {res['row_f1']:.4f} (strict {res['row_f1_strict']:.4f}); filing all-correct "
-            f"{res['filing_all_correct_rate']:.4f}; report: {path}")
+            res,
+            ReportWriter(f"parse_accuracy/{args.year}q{args.quarter}", root=args.reports_root),
+            notes="\n\n".join(notes),
+            metadata={
+                "dataset": f"sec_insider_transactions_{args.year}q{args.quarter}",
+                "dataset_sha256": _sha256(Path(zpath)),
+                "seed": args.seed,
+                "sample_n": args.sample,
+                "hard_n": args.hard,
+                "n_sampled": len(accs),
+                "n_scored": len(scored),
+                "n_fetch_failed": len(fetch_failed),
+                "n_skipped_max_fetch": len(skipped_cap),
+                "n_parser_errors": len(parser_errors),
+                "http_requests": client.request_count,
+                "official_rows_rejected_at_load": rejects,
+                "cache_dir": str(args.cache_dir),
+            },
+        )
+        out(
+            f"row F1 {res['row_f1']:.4f} (strict {res['row_f1_strict']:.4f}); filing all-correct "
+            f"{res['filing_all_correct_rate']:.4f}; report: {path}"
+        )
         return 0
     finally:
         client.close()
@@ -148,24 +173,43 @@ def run_offline(args, out: Callable[[str], None] = print) -> int:
     res = score(_normalise_parsed(rows), expected)
     baseline = json.loads(Path(args.baseline).read_text()) if Path(args.baseline).exists() else {}
     fm = [v for v in res["field_exact_match"].values() if v is not None]
-    observed = {"row_f1_strict": res["row_f1_strict"], "filing_all_correct_rate": res["filing_all_correct_rate"],
-                "min_field_exact_match": min(fm) if fm else 0.0}
-    regressions = [f"{k}: {observed[k]:.4f} < recorded {baseline[k]:.4f}" for k in observed
-                   if k in baseline and observed[k] < baseline[k] - 1e-12]
+    observed = {
+        "row_f1_strict": res["row_f1_strict"],
+        "filing_all_correct_rate": res["filing_all_correct_rate"],
+        "min_field_exact_match": min(fm) if fm else 0.0,
+    }
+    regressions = [
+        f"{k}: {observed[k]:.4f} < recorded {baseline[k]:.4f}"
+        for k in observed
+        if k in baseline and observed[k] < baseline[k] - 1e-12
+    ]
     for k in ("n_accessions", "n_official_rows"):
         if k in baseline and res[k] != baseline[k]:
-            regressions.append(f"{k}: {res[k]} != recorded {baseline[k]} (expected-rows file changed without updating the baseline)")
-    notes = ("**Fixtures are reconstructed/synthetic** (see tests/edgar/fixtures/README.md): 8 reconstructed from "
-             "sec-api.io JSON, the rest hand-built. This is a parser regression check against hand-transcribed "
-             "expected rows, NOT the official-dataset accuracy (E1), which needs real XML and SEC_USER_AGENT.\n\n"
-             f"Recorded baseline: `{json.dumps({k: v for k, v in baseline.items() if not k.startswith('_')})}`. "
-             f"Status: {'REGRESSION: ' + '; '.join(regressions) if regressions else 'OK'}")
-    path = write_report(res, ReportWriter("parse_accuracy_fixtures", root=args.reports_root), notes=notes,
-                        metadata={"dataset": "tests/edgar/fixtures (reconstructed + synthetic)",
-                                  "expected_csv_sha256": _sha256(Path(args.expected)), "regressions": regressions,
-                                  "observed": observed})
-    out(f"fixtures: {res['n_accessions']} filings, {res['n_official_rows']} rows; strict row F1 "
-        f"{res['row_f1_strict']:.4f}, filing all-correct {res['filing_all_correct_rate']:.4f}; report: {path}")
+            regressions.append(
+                f"{k}: {res[k]} != recorded {baseline[k]} (expected-rows file changed without updating the baseline)"
+            )
+    notes = (
+        "**Fixtures are reconstructed/synthetic** (see tests/edgar/fixtures/README.md): 8 reconstructed from "
+        "sec-api.io JSON, the rest hand-built. This is a parser regression check against hand-transcribed "
+        "expected rows, NOT the official-dataset accuracy (E1), which needs real XML and SEC_USER_AGENT.\n\n"
+        f"Recorded baseline: `{json.dumps({k: v for k, v in baseline.items() if not k.startswith('_')})}`. "
+        f"Status: {'REGRESSION: ' + '; '.join(regressions) if regressions else 'OK'}"
+    )
+    path = write_report(
+        res,
+        ReportWriter("parse_accuracy_fixtures", root=args.reports_root),
+        notes=notes,
+        metadata={
+            "dataset": "tests/edgar/fixtures (reconstructed + synthetic)",
+            "expected_csv_sha256": _sha256(Path(args.expected)),
+            "regressions": regressions,
+            "observed": observed,
+        },
+    )
+    out(
+        f"fixtures: {res['n_accessions']} filings, {res['n_official_rows']} rows; strict row F1 "
+        f"{res['row_f1_strict']:.4f}, filing all-correct {res['filing_all_correct_rate']:.4f}; report: {path}"
+    )
     if regressions:
         out("REGRESSION: " + "; ".join(regressions))
         return 1

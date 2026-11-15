@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from synth import make_calendar, make_market, make_stock, market_df, prices_df
 
 from insider_intel.market.event_study import (
     bmp_test,
@@ -11,7 +12,6 @@ from insider_intel.market.event_study import (
     run_event_study,
     score_decile_analysis,
 )
-from synth import make_calendar, make_market, make_stock, market_df, prices_df
 
 CAL = make_calendar(1500)
 RM = make_market(CAL, seed=123)
@@ -57,7 +57,7 @@ def test_calibration_rejection_rate_under_null():
     rng = np.random.default_rng(7)
     rej_cs = rej_bmp = 0
     n_seeds, n_ev = 200, 25
-    for s in range(n_seeds):
+    for _s in range(n_seeds):
         evs, prices = [], {}
         for i in range(n_ev):
             p0 = int(rng.integers(300, 1300))
@@ -87,10 +87,7 @@ def test_drop_reasons_and_estimation_window():
     # price below min
     prices["PENNY"] = prices_df(CAL, make_stock(CAL, RM, rng), p0=0.2)
     ev = pd.DataFrame(
-        [
-            {"ticker": t, "event_day": CAL[p0]}
-            for t in ["OK", "YOUNG", "DELIST", "PENNY", "NOPRICE"]
-        ]
+        [{"ticker": t, "event_day": CAL[p0]} for t in ["OK", "YOUNG", "DELIST", "PENNY", "NOPRICE"]]
         + [{"ticker": "OK", "event_day": None}, {"ticker": "OK", "event_day": CAL[-3]}]
     )
     out = run_event_study(ev, prices, MKT, windows=[(0, 5), (0, 20)], min_price=1.0, n_boot=10)
@@ -142,7 +139,13 @@ def test_calendar_time_alpha_recovers_injection():
     for i in range(400):
         p0 = int(rng.integers(100, n - 40))
         bm, bs, bh = rng.uniform(0.8, 1.2), rng.normal(0, 0.3), rng.normal(0, 0.3)
-        r = ff["rf"].to_numpy() + bm * ff["mkt_rf"].to_numpy() + bs * ff["smb"].to_numpy() + bh * ff["hml"].to_numpy() + rng.normal(0, 0.015, n)
+        r = (
+            ff["rf"].to_numpy()
+            + bm * ff["mkt_rf"].to_numpy()
+            + bs * ff["smb"].to_numpy()
+            + bh * ff["hml"].to_numpy()
+            + rng.normal(0, 0.015, n)
+        )
         r[0] = 0.0
         r[p0 + 1 : p0 + horizon + 1] += alpha_inj
         prices[f"S{i}"] = prices_df(CAL, r)
@@ -161,7 +164,15 @@ def test_calendar_time_alpha_recovers_injection():
 def test_calendar_time_null_alpha():
     rng = np.random.default_rng(6)
     n = len(CAL)
-    ff = pd.DataFrame({"date": CAL, "mkt_rf": rng.normal(0.0004, 0.01, n), "smb": rng.normal(0, 0.004, n), "hml": rng.normal(0, 0.004, n), "rf": 0.0001})
+    ff = pd.DataFrame(
+        {
+            "date": CAL,
+            "mkt_rf": rng.normal(0.0004, 0.01, n),
+            "smb": rng.normal(0, 0.004, n),
+            "hml": rng.normal(0, 0.004, n),
+            "rf": 0.0001,
+        }
+    )
     prices, evs = {}, []
     for i in range(300):
         p0 = int(rng.integers(100, n - 40))

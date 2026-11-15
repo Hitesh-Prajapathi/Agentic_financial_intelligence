@@ -8,14 +8,15 @@ as a labelled "degraded" fallback. Emits the event protocol the UI consumes:
     done   {intent, confidence, latency_ms, model, citations, grounding, mode, query_id}
     error  {message}
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import re
 import time
+from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Iterator
 
 from insider_intel.chat.agent import ChatAgent, llm_supports_tools
 from insider_intel.chat.degraded import stream_answer
@@ -28,7 +29,9 @@ from insider_intel.ui.charts import chart_for_question
 logger = logging.getLogger(__name__)
 
 _CHART_RE = re.compile(r"\b(chart|graph|plot|visuali[sz]e|visuali[sz]ation|draw)\b", re.I)
-_STATUS_RE = re.compile(r"\b(pipeline status|last (run|update|refresh)|when .*(updated|refreshed)|data freshness|how fresh)\b", re.I)
+_STATUS_RE = re.compile(
+    r"\b(pipeline status|last (run|update|refresh)|when .*(updated|refreshed)|data freshness|how fresh)\b", re.I
+)
 
 
 def classify_intent(question: str) -> str:
@@ -39,15 +42,22 @@ def classify_intent(question: str) -> str:
     return "chat"
 
 
-NO_DATA_TEXT = ("I don't have any data loaded yet. Click **Refresh data** in the sidebar to pull the latest "
-                "Form 4 filings, or switch on demo mode.")
+NO_DATA_TEXT = (
+    "I don't have any data loaded yet. Click **Refresh data** in the sidebar to pull the latest "
+    "Form 4 filings, or switch on demo mode."
+)
 
 
 def legacy_citations(g: dict) -> dict:
     """Map grounding's keys onto the keys older UI/tests read (cited / valid / invalid / grounded / refused)."""
     cited = sorted(set(g["citations_valid"]) | set(g["citations_invalid"]))
-    return {"cited": cited, "valid": g["citations_valid"], "invalid": g["citations_invalid"],
-            "grounded": bool(g["citations_valid"]) or g["abstained"], "refused": g["abstained"]}
+    return {
+        "cited": cited,
+        "valid": g["citations_valid"],
+        "invalid": g["citations_invalid"],
+        "grounded": bool(g["citations_valid"]) or g["abstained"],
+        "refused": g["abstained"],
+    }
 
 
 def _age_hours(as_of) -> float | None:
@@ -69,10 +79,13 @@ class ChatService:
 
     def _last_prompt_hash(self) -> str | None:
         log = getattr(self.llm, "call_log", None)
-        return (log[-1].get("prompt_hash") if log else None)
+        return log[-1].get("prompt_hash") if log else None
 
     def _has_data(self) -> bool:
-        return bool(self.db.query("SELECT COUNT(*) FROM top_trades")[0][0] or self.db.query("SELECT COUNT(*) FROM filings")[0][0])
+        return bool(
+            self.db.query("SELECT COUNT(*) FROM top_trades")[0][0]
+            or self.db.query("SELECT COUNT(*) FROM filings")[0][0]
+        )
 
     def status_text(self) -> str:
         r = self.db.query("""SELECT run_id, status, completed_at, filings_ingested, trades_ranked, error_message
@@ -80,8 +93,9 @@ class ChatService:
         if not r:
             return "No pipeline run yet. Use **Refresh data** in the sidebar (or load demo data)."
         run_id, status, done, nf, nt, err = r[0]
-        return (f"Last pipeline run **{status}** at {done:%Y-%m-%d %H:%M UTC}: {nf} new filings, {nt} trades ranked."
-                + (f" Note: {err}" if err else ""))
+        return f"Last pipeline run **{status}** at {done:%Y-%m-%d %H:%M UTC}: {nf} new filings, {nt} trades ranked." + (
+            f" Note: {err}" if err else ""
+        )
 
     def stream_query(self, question: str, history: list[dict] | None = None) -> Iterator[dict]:
         """Yields events: {'type': 'meta'|'delta'|'chart'|'done'|'error', ...}."""
@@ -92,8 +106,13 @@ class ChatService:
                 if intent == "status":
                     txt = self.status_text()
                     yield {"type": "delta", "text": txt}
-                    yield {"type": "done", "intent": intent, "confidence": "high", "latency_ms": int((time.time() - t0) * 1000),
-                           "citations": {"grounded": True, "valid": [], "invalid": []}}
+                    yield {
+                        "type": "done",
+                        "intent": intent,
+                        "confidence": "high",
+                        "latency_ms": int((time.time() - t0) * 1000),
+                        "citations": {"grounded": True, "valid": [], "invalid": []},
+                    }
                     return
 
                 if intent == "chart":
@@ -104,11 +123,23 @@ class ChatService:
                     else:
                         yield {"type": "chart", "figure": res["figure"]}
                         yield {"type": "delta", "text": res.get("note") or f"Here is the chart ({res['kind']})."}
-                    qid = self.db.log_query(question, intent, "high" if res.get("figure") is not None else "low",
-                                            int((time.time() - t0) * 1000), None, 0, mode="chart")
-                    yield {"type": "done", "intent": intent, "confidence": "high" if res.get("figure") is not None else "low",
-                           "latency_ms": int((time.time() - t0) * 1000), "query_id": qid,
-                           "citations": {"grounded": True, "valid": [], "invalid": []}}
+                    qid = self.db.log_query(
+                        question,
+                        intent,
+                        "high" if res.get("figure") is not None else "low",
+                        int((time.time() - t0) * 1000),
+                        None,
+                        0,
+                        mode="chart",
+                    )
+                    yield {
+                        "type": "done",
+                        "intent": intent,
+                        "confidence": "high" if res.get("figure") is not None else "low",
+                        "latency_ms": int((time.time() - t0) * 1000),
+                        "query_id": qid,
+                        "citations": {"grounded": True, "valid": [], "invalid": []},
+                    }
                     return
 
                 if self._agent_enabled():
@@ -124,20 +155,38 @@ class ChatService:
 
     # ── agent path ──────────────────────────────────────────────────────────
     def _evidence_text(self, outcomes) -> str:
-        return "\n".join(f"{o.name}({json.dumps(o.args, default=str)}) -> {o.message if o.ok else 'ERROR ' + str(o.error)}"
-                         for o in outcomes)
+        return "\n".join(
+            f"{o.name}({json.dumps(o.args, default=str)}) -> {o.message if o.ok else 'ERROR ' + str(o.error)}"
+            for o in outcomes
+        )
 
     def _agent_turn(self, question, history, intent, t0) -> Iterator[dict]:
         """Returns True when it produced a final `done`; False when the caller should fall back to degraded mode."""
         as_of = self.db.data_as_of()
         if not self._has_data():
-            yield {"type": "meta", "mode": "agent", "confidence": "low", "reason": "no data loaded", "tickers": [],
-                   "rows_used": 0, "evidence": "", "as_of": as_of}
+            yield {
+                "type": "meta",
+                "mode": "agent",
+                "confidence": "low",
+                "reason": "no data loaded",
+                "tickers": [],
+                "rows_used": 0,
+                "evidence": "",
+                "as_of": as_of,
+            }
             yield {"type": "delta", "text": NO_DATA_TEXT}
             ms = int((time.time() - t0) * 1000)
             qid = self.db.log_query(question, intent, "low", ms, None, 0, mode="agent")
-            yield {"type": "done", "intent": intent, "confidence": "low", "latency_ms": ms, "model": None, "mode": "agent",
-                   "citations": {"cited": [], "valid": [], "invalid": [], "grounded": True, "refused": True}, "query_id": qid}
+            yield {
+                "type": "done",
+                "intent": intent,
+                "confidence": "low",
+                "latency_ms": ms,
+                "model": None,
+                "mode": "agent",
+                "citations": {"cited": [], "valid": [], "invalid": [], "grounded": True, "refused": True},
+                "query_id": qid,
+            }
             return True
 
         agent = ChatAgent(self.llm, self.registry, self.tool_ctx, max_rounds=int(self.settings.chat_max_tool_rounds))
@@ -151,8 +200,16 @@ class ChatService:
                         started = True
                         rows = sum(o.n_rows for o in agent.outcomes)
                         conf, why = self._confidence(rows, as_of)
-                        yield {"type": "meta", "mode": "agent", "confidence": conf, "reason": why, "tickers": [],
-                               "rows_used": rows, "evidence": self._evidence_text(agent.outcomes), "as_of": as_of}
+                        yield {
+                            "type": "meta",
+                            "mode": "agent",
+                            "confidence": conf,
+                            "reason": why,
+                            "tickers": [],
+                            "rows_used": rows,
+                            "evidence": self._evidence_text(agent.outcomes),
+                            "as_of": as_of,
+                        }
                     buffered.append(ev["text"])
                     yield ev
                 elif ev["type"] == "result":
@@ -165,15 +222,39 @@ class ChatService:
         conf, why = self._confidence(rows, as_of)
         g = check_grounding(run.answer, run.outcomes, question, history)
         if g["abstained"]:
-            conf = "low"                      # a refusal is never "high confidence"
-        elif conf == "high" and (g["unsupported"] or g["citations_invalid"] or g["empty_but_asserted"] or not g["citations_valid"]):
+            conf = "low"  # a refusal is never "high confidence"
+        elif conf == "high" and (
+            g["unsupported"] or g["citations_invalid"] or g["empty_but_asserted"] or not g["citations_valid"]
+        ):
             conf = "moderate"
         ms = int((time.time() - t0) * 1000)
-        qid = self.db.log_query(question, intent, conf, ms, run.model, rows, mode="agent", tool_calls=len(run.outcomes),
-                                unsupported_numbers=len(g.get("unsupported") or []), prompt_hash=self._last_prompt_hash())
-        yield {"type": "done", "intent": intent, "confidence": conf, "reason": why, "latency_ms": ms, "model": run.model,
-               "mode": "agent", "citations": legacy_citations(g), "grounding": g, "query_id": qid,
-               "tool_calls": len(run.outcomes), "rounds": run.rounds, "cut_off": run.cut_off}
+        qid = self.db.log_query(
+            question,
+            intent,
+            conf,
+            ms,
+            run.model,
+            rows,
+            mode="agent",
+            tool_calls=len(run.outcomes),
+            unsupported_numbers=len(g.get("unsupported") or []),
+            prompt_hash=self._last_prompt_hash(),
+        )
+        yield {
+            "type": "done",
+            "intent": intent,
+            "confidence": conf,
+            "reason": why,
+            "latency_ms": ms,
+            "model": run.model,
+            "mode": "agent",
+            "citations": legacy_citations(g),
+            "grounding": g,
+            "query_id": qid,
+            "tool_calls": len(run.outcomes),
+            "rounds": run.rounds,
+            "cut_off": run.cut_off,
+        }
         return True
 
     def _confidence(self, rows: int, as_of) -> tuple[str, str]:
@@ -190,9 +271,16 @@ class ChatService:
     # ── degraded path (v2 context stuffing) ─────────────────────────────────
     def _degraded_turn(self, question, history, intent, t0) -> Iterator[dict]:
         evidence = self.retriever.run(question)
-        yield {"type": "meta", "mode": "degraded", "confidence": evidence["confidence"], "reason": evidence["confidence_reason"],
-               "tickers": evidence["tickers"], "rows_used": evidence["rows_used"],
-               "evidence": evidence["sql_context"], "as_of": evidence["as_of"]}
+        yield {
+            "type": "meta",
+            "mode": "degraded",
+            "confidence": evidence["confidence"],
+            "reason": evidence["confidence_reason"],
+            "tickers": evidence["tickers"],
+            "rows_used": evidence["rows_used"],
+            "evidence": evidence["sql_context"],
+            "as_of": evidence["as_of"],
+        }
 
         if evidence["rows_used"] == 0:  # nothing to ground an answer in: don't spend an LLM call
             yield {"type": "delta", "text": NO_DATA_TEXT}
@@ -206,24 +294,53 @@ class ChatService:
                 model = self.llm.last_label
             except LLMError as e:
                 logger.error("Chat LLM unavailable: %s", e)
-                fallback = ("⚠️ The language models are unavailable right now, so here is the raw data instead:\n\n"
-                            + evidence["sql_context"])
+                fallback = (
+                    "⚠️ The language models are unavailable right now, so here is the raw data instead:\n\n"
+                    + evidence["sql_context"]
+                )
                 yield {"type": "delta", "text": fallback}
                 full, model = fallback, None
 
-        g = check_grounding(full, [], question, history, evidence_text=evidence["sql_context"],
-                            extra_sources=evidence["known_sources"])
+        g = check_grounding(
+            full, [], question, history, evidence_text=evidence["sql_context"], extra_sources=evidence["known_sources"]
+        )
         confidence = "low" if g["abstained"] else evidence["confidence"]  # a refusal is never "high confidence"
         ms = int((time.time() - t0) * 1000)
-        qid = self.db.log_query(question, "chat_degraded", confidence, ms, model, evidence["rows_used"], mode="degraded",
-                                tool_calls=0, unsupported_numbers=len(g.get("unsupported") or []),
-                                prompt_hash=self._last_prompt_hash())
-        yield {"type": "done", "intent": intent, "confidence": confidence, "latency_ms": ms, "model": model, "mode": "degraded",
-               "citations": legacy_citations(g), "grounding": g, "query_id": qid}
+        qid = self.db.log_query(
+            question,
+            "chat_degraded",
+            confidence,
+            ms,
+            model,
+            evidence["rows_used"],
+            mode="degraded",
+            tool_calls=0,
+            unsupported_numbers=len(g.get("unsupported") or []),
+            prompt_hash=self._last_prompt_hash(),
+        )
+        yield {
+            "type": "done",
+            "intent": intent,
+            "confidence": confidence,
+            "latency_ms": ms,
+            "model": model,
+            "mode": "degraded",
+            "citations": legacy_citations(g),
+            "grounding": g,
+            "query_id": qid,
+        }
 
     def handle_query(self, question: str, history: list[dict] | None = None) -> dict:
         """Non-streaming convenience wrapper (CLI / tests)."""
-        out = {"response": "", "chart": None, "confidence": "low", "citations": None, "tools": [], "grounding": None, "mode": None}
+        out = {
+            "response": "",
+            "chart": None,
+            "confidence": "low",
+            "citations": None,
+            "tools": [],
+            "grounding": None,
+            "mode": None,
+        }
         for ev in self.stream_query(question, history):
             if ev["type"] == "delta":
                 out["response"] += ev["text"]
@@ -232,8 +349,13 @@ class ChatService:
             elif ev["type"] == "tool":
                 out["tools"].append(ev)
             elif ev["type"] == "done":
-                out.update(confidence=ev["confidence"], citations=ev.get("citations"), latency_ms=ev["latency_ms"],
-                           grounding=ev.get("grounding"), mode=ev.get("mode"))
+                out.update(
+                    confidence=ev["confidence"],
+                    citations=ev.get("citations"),
+                    latency_ms=ev["latency_ms"],
+                    grounding=ev.get("grounding"),
+                    mode=ev.get("mode"),
+                )
             elif ev["type"] == "error":
                 out["response"] = ev["message"]
         return out

@@ -1,4 +1,5 @@
 """Synthetic market/stock generators for the offline event-study tests."""
+
 import numpy as np
 import pandas as pd
 

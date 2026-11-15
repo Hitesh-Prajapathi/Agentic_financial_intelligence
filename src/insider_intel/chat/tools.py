@@ -11,18 +11,20 @@ Design rules
   * Tools for tables/columns that may not exist yet (``reporting_owners``, ``insider_edges``, ``superseded``) degrade to
     a clear ``available: false`` result or to a name-based fallback.
 """
+
 from __future__ import annotations
 
 import json
 import math
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from typing import Any, Callable, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
-MAX_RESULT_CHARS = 6000   # keep tool messages small: the free tier is ~8k tokens per minute
+MAX_RESULT_CHARS = 6000  # keep tool messages small: the free tier is ~8k tokens per minute
 _TICKER_RE = re.compile(r"^[A-Z][A-Z0-9.\-]{0,9}$")
 
 
@@ -30,14 +32,19 @@ _TICKER_RE = re.compile(r"^[A-Z][A-Z0-9.\-]{0,9}$")
 @dataclass
 class ToolContext:
     db: Any  # needs .query(sql, params) -> list[tuple] and .query_df(sql, params) -> DataFrame
-    rank_window_days: int | None = None          # settings.rank_window_days (ranking window), shown by data_status
-    now: Callable[[], datetime] = field(default=lambda: datetime.utcnow())  # injectable clock (naive UTC), used only for data age
+    rank_window_days: int | None = None  # settings.rank_window_days (ranking window), shown by data_status
+    now: Callable[[], datetime] = field(
+        default=lambda: datetime.utcnow()
+    )  # injectable clock (naive UTC), used only for data age
 
     def has_table(self, name: str) -> bool:
         return bool(self.db.query("SELECT 1 FROM information_schema.tables WHERE table_name = ? LIMIT 1", [name]))
 
     def columns(self, table: str) -> set[str]:
-        return {r[0] for r in self.db.query("SELECT column_name FROM information_schema.columns WHERE table_name = ?", [table])}
+        return {
+            r[0]
+            for r in self.db.query("SELECT column_name FROM information_schema.columns WHERE table_name = ?", [table])
+        }
 
     def anchor(self) -> date | None:
         """Newest filing date in the data: the right edge of every ``days`` window."""
@@ -112,8 +119,14 @@ def _result(rows: list[dict], total: int | None = None, **extra) -> dict:
 
 
 def _unavailable(what: str) -> dict:
-    return {"rows": [], "row_count": 0, "total_matched": 0, "truncated": False, "available": False,
-            "note": f"{what} is not available in this database yet."}
+    return {
+        "rows": [],
+        "row_count": 0,
+        "total_matched": 0,
+        "truncated": False,
+        "available": False,
+        "note": f"{what} is not available in this database yet.",
+    }
 
 
 # ── argument models ──────────────────────────────────────────────────────────
@@ -132,7 +145,9 @@ def _ticker(v):
 
 class TopTradesArgs(_Args):
     date: str | None = Field(None, description="Ranking date YYYY-MM-DD. Omit for the latest ranking.")
-    days: int | None = Field(None, ge=1, le=90, description="Include rankings from the last N days of ranking history instead of one date.")
+    days: int | None = Field(
+        None, ge=1, le=90, description="Include rankings from the last N days of ranking history instead of one date."
+    )
     direction: Literal["BUY", "SELL"] | None = Field(None, description="Only buys or only sells.")
     n: int = Field(5, ge=1, le=20, description="How many ranked trades to return.")
 
@@ -158,8 +173,16 @@ class TopTradesArgs(_Args):
 class FilingsForArgs(_Args):
     ticker: str | None = Field(None, description="Issuer ticker, e.g. BROS.")
     owner: str | None = Field(None, description="Insider name (any word order) or reporting-owner CIK.")
-    days: int = Field(14, ge=1, le=365, description="Window length in days, ending at the newest filing in the data (default 14, the ranking window).")
-    codes: list[str] = Field(default_factory=lambda: ["P", "S"], description="Transaction codes, default [\"P\",\"S\"]: P open-market buy, S open-market sale, others if stored (A, M, F, G).")
+    days: int = Field(
+        14,
+        ge=1,
+        le=365,
+        description="Window length in days, ending at the newest filing in the data (default 14, the ranking window).",
+    )
+    codes: list[str] = Field(
+        default_factory=lambda: ["P", "S"],
+        description='Transaction codes, default ["P","S"]: P open-market buy, S open-market sale, others if stored (A, M, F, G).',
+    )
     limit: int = Field(15, ge=1, le=30)
 
     @field_validator("ticker", mode="before")
@@ -191,7 +214,9 @@ class InsiderHistoryArgs(_Args):
 
 class ClusterEventsArgs(_Args):
     days: int = Field(30, ge=1, le=365)
-    min_insiders: int = Field(2, ge=2, le=20, description="Minimum number of distinct insiders trading the same way at one company.")
+    min_insiders: int = Field(
+        2, ge=2, le=20, description="Minimum number of distinct insiders trading the same way at one company."
+    )
     direction: Literal["BUY", "SELL"] | None = None
     limit: int = Field(10, ge=1, le=20)
 
@@ -248,20 +273,26 @@ def _owner_filter(ctx: ToolContext, owner: str) -> tuple[str, list]:
             parts.append("f.owner_ciks LIKE ?")
             params.append(f"%{cik}%")
         if ctx.has_table("reporting_owners"):
-            parts.append("EXISTS (SELECT 1 FROM reporting_owners ro WHERE ro.accession_number = f.accession_number AND ro.owner_cik IN (?, ?))")
+            parts.append(
+                "EXISTS (SELECT 1 FROM reporting_owners ro WHERE ro.accession_number = f.accession_number AND ro.owner_cik IN (?, ?))"
+            )
             params += [cik, owner.strip()]
         return ("(" + " OR ".join(parts) + ")", params) if parts else ("FALSE", [])
     cond, params = _like_tokens("f.insider_name", owner)
     if ctx.has_table("reporting_owners"):  # joint filers: the name may belong to a co-owner
         c2, p2 = _like_tokens("ro.owner_name", owner)
-        return (f"(({cond}) OR EXISTS (SELECT 1 FROM reporting_owners ro WHERE ro.accession_number = f.accession_number AND {c2}))",
-                params + p2)
+        return (
+            f"(({cond}) OR EXISTS (SELECT 1 FROM reporting_owners ro WHERE ro.accession_number = f.accession_number AND {c2}))",
+            params + p2,
+        )
     return f"({cond})", params
 
 
-_TXN_COLS = (f"f.accession_number, CAST(f.filing_date AS DATE) AS filed, f.issuer_ticker AS ticker, f.issuer_name AS company, "
-             f"f.insider_name AS insider, f.insider_title AS title, f.is_10b5_1 AS under_10b5_1, f.form_type, "
-             f"t.transaction_date AS trade_date, t.code, t.shares, t.price_per_share AS price, {_value_expr()} AS dollar_value")
+_TXN_COLS = (
+    f"f.accession_number, CAST(f.filing_date AS DATE) AS filed, f.issuer_ticker AS ticker, f.issuer_name AS company, "
+    f"f.insider_name AS insider, f.insider_title AS title, f.is_10b5_1 AS under_10b5_1, f.form_type, "
+    f"t.transaction_date AS trade_date, t.code, t.shares, t.price_per_share AS price, {_value_expr()} AS dollar_value"
+)
 
 
 def _with_source(rows: list[dict]) -> list[dict]:
@@ -298,12 +329,19 @@ def top_trades(ctx: ToolContext, a: TopTradesArgs) -> dict:
                    insider_name AS lead_insider, insider_title AS lead_title,
                    ROUND(pct_holdings * 100, 1) AS largest_trade_pct_of_position,
                    ROUND(planned_pct * 100, 1) AS pct_of_dollars_under_10b5_1_plan, signal_tags
-            FROM top_trades WHERE {w} ORDER BY run_date DESC, rank LIMIT ?""", params + [a.n])
+            FROM top_trades WHERE {w} ORDER BY run_date DESC, rank LIMIT ?""",
+        params + [a.n],
+    )
     for r in rows:
         r["source"] = f"RANK {r['run_date']} #{r['rank']}"
     note = None if rows else (f"No ranking for {a.date}." if a.date else "No ranked trades match.")
-    return _result(rows, total, latest_ranking_date=str(latest), note=note,
-                   ranking_rule="open-market buys/sells (P/S), ranked by absolute net dollars per company")
+    return _result(
+        rows,
+        total,
+        latest_ranking_date=str(latest),
+        note=note,
+        ranking_rule="open-market buys/sells (P/S), ranked by absolute net dollars per company",
+    )
 
 
 def filings_for(ctx: ToolContext, a: FilingsForArgs) -> dict:
@@ -323,13 +361,23 @@ def filings_for(ctx: ToolContext, a: FilingsForArgs) -> dict:
         params += p
     w = " AND ".join(where) + _live(ctx)
     base = "FROM transactions t JOIN filings f ON f.accession_number = t.accession_number"
-    tot = ctx.rows(f"""SELECT COUNT(*) AS n_transactions, COUNT(DISTINCT f.accession_number) AS n_filings,
+    tot = ctx.rows(
+        f"""SELECT COUNT(*) AS n_transactions, COUNT(DISTINCT f.accession_number) AS n_filings,
                               SUM(CASE WHEN t.code = 'P' THEN {_value_expr()} END) AS buy_value,
-                              SUM(CASE WHEN t.code = 'S' THEN {_value_expr()} END) AS sell_value {base} WHERE {w}""", params)[0]
-    rows = ctx.rows(f"SELECT {_TXN_COLS} {base} WHERE {w} ORDER BY dollar_value DESC NULLS LAST, filed DESC LIMIT ?",
-                    params + [a.limit])
-    return _result(_with_source(rows), tot["n_transactions"], totals=tot,
-                   window={"from": str(start), "to": str(end), "days": a.days}, ordered_by="dollar_value, largest first")
+                              SUM(CASE WHEN t.code = 'S' THEN {_value_expr()} END) AS sell_value {base} WHERE {w}""",
+        params,
+    )[0]
+    rows = ctx.rows(
+        f"SELECT {_TXN_COLS} {base} WHERE {w} ORDER BY dollar_value DESC NULLS LAST, filed DESC LIMIT ?",
+        params + [a.limit],
+    )
+    return _result(
+        _with_source(rows),
+        tot["n_transactions"],
+        totals=tot,
+        window={"from": str(start), "to": str(end), "days": a.days},
+        ordered_by="dollar_value, largest first",
+    )
 
 
 def insider_history(ctx: ToolContext, a: InsiderHistoryArgs) -> dict:
@@ -339,14 +387,24 @@ def insider_history(ctx: ToolContext, a: InsiderHistoryArgs) -> dict:
     w = f"{c}{_live(ctx)} AND t.code IN ('P','S')"
     base = "FROM transactions t JOIN filings f ON f.accession_number = t.accession_number"
     total = ctx.scalar(f"SELECT COUNT(*) {base} WHERE {w}", p)
-    rows = ctx.rows(f"SELECT {_TXN_COLS} {base} WHERE {w} ORDER BY t.transaction_date DESC NULLS LAST LIMIT ?", p + [a.limit])
-    by_issuer = ctx.rows(f"""SELECT f.issuer_ticker AS ticker, COUNT(*) AS n_transactions,
+    rows = ctx.rows(
+        f"SELECT {_TXN_COLS} {base} WHERE {w} ORDER BY t.transaction_date DESC NULLS LAST LIMIT ?", p + [a.limit]
+    )
+    by_issuer = ctx.rows(
+        f"""SELECT f.issuer_ticker AS ticker, COUNT(*) AS n_transactions,
                                     SUM(CASE WHEN t.code='P' THEN {_value_expr()} END) AS buy_value,
                                     SUM(CASE WHEN t.code='S' THEN {_value_expr()} END) AS sell_value
-                             {base} WHERE {w} GROUP BY f.issuer_ticker ORDER BY n_transactions DESC LIMIT 10""", p)
+                             {base} WHERE {w} GROUP BY f.issuer_ticker ORDER BY n_transactions DESC LIMIT 10""",
+        p,
+    )
     names = [r[0] for r in ctx.db.query(f"SELECT DISTINCT f.insider_name {base} WHERE {w} LIMIT 6", p)]
-    return _result(_with_source(rows), total, by_issuer=by_issuer, matched_insiders=names,
-                   note=None if rows else f"No open-market trades found for '{a.owner}'.")
+    return _result(
+        _with_source(rows),
+        total,
+        by_issuer=by_issuer,
+        matched_insiders=names,
+        note=None if rows else f"No open-market trades found for '{a.owner}'.",
+    )
 
 
 def cluster_events(ctx: ToolContext, a: ClusterEventsArgs) -> dict:
@@ -356,9 +414,11 @@ def cluster_events(ctx: ToolContext, a: ClusterEventsArgs) -> dict:
     if end is None:
         return _result([], note="No filings loaded.")
     codes = {"BUY": ["P"], "SELL": ["S"]}.get(a.direction or "", ["P", "S"])
-    base = (f"FROM transactions t JOIN filings f ON f.accession_number = t.accession_number "
-            f"WHERE CAST(f.filing_date AS DATE) BETWEEN ? AND ? AND t.code IN ({','.join('?' * len(codes))}) "
-            f"AND f.issuer_ticker IS NOT NULL{_live(ctx)}")
+    base = (
+        f"FROM transactions t JOIN filings f ON f.accession_number = t.accession_number "
+        f"WHERE CAST(f.filing_date AS DATE) BETWEEN ? AND ? AND t.code IN ({','.join('?' * len(codes))}) "
+        f"AND f.issuer_ticker IS NOT NULL{_live(ctx)}"
+    )
     params = [start, end, *codes]
     grp = "GROUP BY f.issuer_ticker, t.code HAVING COUNT(DISTINCT f.insider_name) >= ?"
     total = ctx.scalar(f"SELECT COUNT(*) FROM (SELECT 1 {base} {grp})", params + [a.min_insiders])
@@ -368,12 +428,20 @@ def cluster_events(ctx: ToolContext, a: ClusterEventsArgs) -> dict:
                    COUNT(DISTINCT f.insider_name) AS n_insiders, COUNT(*) AS n_transactions,
                    SUM({_value_expr()}) AS total_value, MIN(t.transaction_date) AS first_trade, MAX(t.transaction_date) AS last_trade,
                    list(DISTINCT f.insider_name) AS insiders
-            {base} {grp} ORDER BY n_insiders DESC, total_value DESC LIMIT ?""", params + [a.min_insiders, a.limit])
+            {base} {grp} ORDER BY n_insiders DESC, total_value DESC LIMIT ?""",
+        params + [a.min_insiders, a.limit],
+    )
     for r in rows:
         r["insiders"] = (r["insiders"] or [])[:8]
         r["source"] = f"CLUSTER {r['ticker']} {r['direction']} {r['first_trade']}"
-    return _result(rows, total, window={"from": str(start), "to": str(end), "days": a.days},
-                   note=None if rows else f"No company had {a.min_insiders}+ distinct insiders trading the same way in the window.")
+    return _result(
+        rows,
+        total,
+        window={"from": str(start), "to": str(end), "days": a.days},
+        note=None
+        if rows
+        else f"No company had {a.min_insiders}+ distinct insiders trading the same way in the window.",
+    )
 
 
 def insider_network(ctx: ToolContext, a: InsiderNetworkArgs) -> dict:
@@ -390,12 +458,18 @@ def insider_network(ctx: ToolContext, a: InsiderNetworkArgs) -> dict:
                    e.is_officer, e.is_director, e.is_ten_pct, e.officer_title AS title,
                    CAST(e.first_accepted_at AS DATE) AS first_filing, CAST(e.last_accepted_at AS DATE) AS last_filing,
                    e.n_filings, e.buy_value, e.sell_value, e.n_buys, e.n_sells
-            FROM insider_edges e WHERE {cond} ORDER BY e.last_accepted_at DESC NULLS LAST LIMIT 20""", params)
+            FROM insider_edges e WHERE {cond} ORDER BY e.last_accepted_at DESC NULLS LAST LIMIT 20""",
+        params,
+    )
     for r in rows:
         r["source"] = f"GRAPH {r['owner_cik']}"
     owners = sorted({(r["owner_cik"], r["owner_name"]) for r in rows})
-    return _result(rows, total, matched_owners=[{"owner_cik": c, "name": n} for c, n in owners[:6]],
-                   note=None if rows else f"No insider matching '{a.owner}' in the network.")
+    return _result(
+        rows,
+        total,
+        matched_owners=[{"owner_cik": c, "name": n} for c, n in owners[:6]],
+        note=None if rows else f"No insider matching '{a.owner}' in the network.",
+    )
 
 
 def _fallback_network(ctx: ToolContext, owner: str) -> dict:
@@ -411,11 +485,17 @@ def _fallback_network(ctx: ToolContext, owner: str) -> dict:
                    SUM(CASE WHEN t.code='P' THEN {_value_expr()} END) AS buy_value,
                    SUM(CASE WHEN t.code='S' THEN {_value_expr()} END) AS sell_value
             FROM filings f JOIN transactions t ON t.accession_number = f.accession_number
-            WHERE {c}{_live(ctx)} AND t.code IN ('P','S') GROUP BY f.insider_name, f.issuer_ticker ORDER BY last_filing DESC LIMIT 20""", p)
+            WHERE {c}{_live(ctx)} AND t.code IN ('P','S') GROUP BY f.insider_name, f.issuer_ticker ORDER BY last_filing DESC LIMIT 20""",
+        p,
+    )
     for r in rows:
         r["source"] = f"GRAPH {r['owner_name']}"
-    return _result(rows, len(rows), note=("CIK network not built yet; matched by name only." if rows
-                                          else f"No insider matching '{owner}' found."), match="name")
+    return _result(
+        rows,
+        len(rows),
+        note=("CIK network not built yet; matched by name only." if rows else f"No insider matching '{owner}' found."),
+        match="name",
+    )
 
 
 def co_insiders(ctx: ToolContext, a: CoInsidersArgs) -> dict:
@@ -425,39 +505,61 @@ def co_insiders(ctx: ToolContext, a: CoInsidersArgs) -> dict:
     start, end = _window(ctx, a.days)
     if end is None:
         return _result([], note="No filings loaded.")
-    base_where = (f"f.issuer_ticker = ? AND CAST(f.filing_date AS DATE) BETWEEN ? AND ? AND t.code IN ('P','S'){_live(ctx)}")
+    base_where = (
+        f"f.issuer_ticker = ? AND CAST(f.filing_date AS DATE) BETWEEN ? AND ? AND t.code IN ('P','S'){_live(ctx)}"
+    )
     params: list = [a.ticker, start, end]
-    sums = (f"COUNT(*) AS n_transactions, SUM(CASE WHEN t.code='P' THEN {_value_expr()} END) AS buy_value, "
-            f"SUM(CASE WHEN t.code='S' THEN {_value_expr()} END) AS sell_value, MAX(t.transaction_date) AS last_trade")
+    sums = (
+        f"COUNT(*) AS n_transactions, SUM(CASE WHEN t.code='P' THEN {_value_expr()} END) AS buy_value, "
+        f"SUM(CASE WHEN t.code='S' THEN {_value_expr()} END) AS sell_value, MAX(t.transaction_date) AS last_trade"
+    )
     if ctx.has_table("reporting_owners"):
-        other = ("(SELECT COUNT(*) FROM insider_edges e WHERE e.owner_cik = ro.owner_cik AND e.issuer_ticker <> ?) AS n_other_companies"
-                 if ctx.has_table("insider_edges") else "NULL AS n_other_companies")
+        other = (
+            "(SELECT COUNT(*) FROM insider_edges e WHERE e.owner_cik = ro.owner_cik AND e.issuer_ticker <> ?) AS n_other_companies"
+            if ctx.has_table("insider_edges")
+            else "NULL AS n_other_companies"
+        )
         oparams = [a.ticker] if ctx.has_table("insider_edges") else []
-        q = (f"SELECT ro.owner_cik, ro.owner_name AS insider, BOOL_OR(ro.is_officer) AS is_officer, BOOL_OR(ro.is_director) AS is_director, "
-             f"BOOL_OR(ro.is_ten_pct) AS is_ten_pct, {sums}, {other} "
-             f"FROM transactions t JOIN filings f ON f.accession_number = t.accession_number "
-             f"JOIN reporting_owners ro ON ro.accession_number = f.accession_number WHERE {base_where} "
-             f"GROUP BY ro.owner_cik, ro.owner_name ORDER BY n_transactions DESC LIMIT ?")
+        q = (
+            f"SELECT ro.owner_cik, ro.owner_name AS insider, BOOL_OR(ro.is_officer) AS is_officer, BOOL_OR(ro.is_director) AS is_director, "
+            f"BOOL_OR(ro.is_ten_pct) AS is_ten_pct, {sums}, {other} "
+            f"FROM transactions t JOIN filings f ON f.accession_number = t.accession_number "
+            f"JOIN reporting_owners ro ON ro.accession_number = f.accession_number WHERE {base_where} "
+            f"GROUP BY ro.owner_cik, ro.owner_name ORDER BY n_transactions DESC LIMIT ?"
+        )
         rows = ctx.rows(q, oparams + params + [a.limit])
         for r in rows:
             r["source"] = f"GRAPH {r['owner_cik']}"
             if r.get("n_other_companies") is None:
                 r.pop("n_other_companies", None)
-        n_total = ctx.scalar(f"SELECT COUNT(DISTINCT ro.owner_cik) FROM transactions t JOIN filings f ON f.accession_number = t.accession_number "
-                             f"JOIN reporting_owners ro ON ro.accession_number = f.accession_number WHERE {base_where}", params)
+        n_total = ctx.scalar(
+            f"SELECT COUNT(DISTINCT ro.owner_cik) FROM transactions t JOIN filings f ON f.accession_number = t.accession_number "
+            f"JOIN reporting_owners ro ON ro.accession_number = f.accession_number WHERE {base_where}",
+            params,
+        )
         note = None
     else:  # name-based fallback
-        rows = ctx.rows(f"SELECT f.insider_name AS insider, f.insider_title AS title, BOOL_OR(f.is_officer) AS is_officer, "
-                        f"BOOL_OR(f.is_director) AS is_director, BOOL_OR(f.is_ten_pct) AS is_ten_pct, {sums} "
-                        f"FROM transactions t JOIN filings f ON f.accession_number = t.accession_number WHERE {base_where} "
-                        f"GROUP BY f.insider_name, f.insider_title ORDER BY n_transactions DESC LIMIT ?", params + [a.limit])
+        rows = ctx.rows(
+            f"SELECT f.insider_name AS insider, f.insider_title AS title, BOOL_OR(f.is_officer) AS is_officer, "
+            f"BOOL_OR(f.is_director) AS is_director, BOOL_OR(f.is_ten_pct) AS is_ten_pct, {sums} "
+            f"FROM transactions t JOIN filings f ON f.accession_number = t.accession_number WHERE {base_where} "
+            f"GROUP BY f.insider_name, f.insider_title ORDER BY n_transactions DESC LIMIT ?",
+            params + [a.limit],
+        )
         for r in rows:
             r["source"] = f"GRAPH {r['insider']}"
-        n_total = ctx.scalar(f"SELECT COUNT(DISTINCT f.insider_name) FROM transactions t JOIN filings f ON f.accession_number = t.accession_number "
-                             f"WHERE {base_where}", params)
+        n_total = ctx.scalar(
+            f"SELECT COUNT(DISTINCT f.insider_name) FROM transactions t JOIN filings f ON f.accession_number = t.accession_number "
+            f"WHERE {base_where}",
+            params,
+        )
         note = "CIK network not built yet; insiders matched by name only."
-    return _result(rows, n_total, window={"from": str(start), "to": str(end), "days": a.days},
-                   note=note if rows else f"No insider trades for {a.ticker} in the window.")
+    return _result(
+        rows,
+        n_total,
+        window={"from": str(start), "to": str(end), "days": a.days},
+        note=note if rows else f"No insider trades for {a.ticker} in the window.",
+    )
 
 
 def sentiment(ctx: ToolContext, a: SentimentArgs) -> dict:
@@ -467,11 +569,16 @@ def sentiment(ctx: ToolContext, a: SentimentArgs) -> dict:
         """SELECT SUM(total_tweets) AS posts, SUM(bullish_count) AS bullish, SUM(bearish_count) AS bearish,
                   SUM(neutral_count) AS neutral, ROUND(SUM(sentiment_index * total_tweets) / NULLIF(SUM(total_tweets), 0), 2) AS sentiment_index,
                   MIN(summary_date) AS first_day, MAX(summary_date) AS last_day
-           FROM sentiment_summary WHERE ticker = ?""", [a.ticker])[0]
+           FROM sentiment_summary WHERE ticker = ?""",
+        [a.ticker],
+    )[0]
     if not r["posts"]:
         return _result([], note=f"No social-sentiment data is held for {a.ticker}.")
-    r.update(ticker=a.ticker, source=f"SENT {a.ticker}",
-             caveat="AI-classified social posts; noisy. sentiment_index runs from -1 (bearish) to +1 (bullish).")
+    r.update(
+        ticker=a.ticker,
+        source=f"SENT {a.ticker}",
+        caveat="AI-classified social posts; noisy. sentiment_index runs from -1 (bearish) to +1 (bullish).",
+    )
     return _result([r])
 
 
@@ -482,8 +589,15 @@ def data_status(ctx: ToolContext, a: DataStatusArgs) -> dict:
                               FROM pipeline_runs WHERE status <> 'running' ORDER BY started_at DESC LIMIT 1""")
         if run:
             rid, status, done, n_f, n_t, err = run[0]
-            row.update(last_run_id=rid, last_run_status=status, last_run_completed_at=str(done)[:16] if done else None,
-                       last_run_filings_ingested=n_f, last_run_trades_ranked=n_t, last_run_error=err, source=f"RUN {rid}")
+            row.update(
+                last_run_id=rid,
+                last_run_status=status,
+                last_run_completed_at=str(done)[:16] if done else None,
+                last_run_filings_ingested=n_f,
+                last_run_trades_ranked=n_t,
+                last_run_error=err,
+                source=f"RUN {rid}",
+            )
     today = ctx.now().date()
     if ctx.has_table("filings"):
         row["filings_total"] = ctx.scalar("SELECT COUNT(*) FROM filings")
@@ -499,8 +613,10 @@ def data_status(ctx: ToolContext, a: DataStatusArgs) -> dict:
     if ctx.rank_window_days:
         row["ranking_window_days"] = ctx.rank_window_days
     if "newest_filing_age_days" in row:
-        row["freshness_note"] = (f"Data is refreshed about twice a month; the newest filing is {row['newest_filing_age_days']} day(s) old"
-                                 + (f", and rankings cover the last {ctx.rank_window_days} days." if ctx.rank_window_days else "."))
+        row["freshness_note"] = (
+            f"Data is refreshed about twice a month; the newest filing is {row['newest_filing_age_days']} day(s) old"
+            + (f", and rankings cover the last {ctx.rank_window_days} days." if ctx.rank_window_days else ".")
+        )
     return _result([row] if row else [], note=None if row else "The database is empty.")
 
 
@@ -543,8 +659,14 @@ class ToolSpec:
     fn: Callable[[ToolContext, Any], dict]
 
     def openai(self) -> dict:
-        return {"type": "function", "function": {"name": self.name, "description": self.description,
-                                                 "parameters": _simplify(self.args.model_json_schema())}}
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": _simplify(self.args.model_json_schema()),
+            },
+        }
 
 
 @dataclass
@@ -578,7 +700,9 @@ class ToolRegistry:
     def call(self, ctx: ToolContext, name: str, raw_args: str | dict | None) -> ToolOutcome:
         spec = self.specs.get(name)
         if spec is None:
-            return ToolOutcome(name, {}, False, error=f"unknown tool '{name}'. Available tools: {', '.join(self.specs)}")
+            return ToolOutcome(
+                name, {}, False, error=f"unknown tool '{name}'. Available tools: {', '.join(self.specs)}"
+            )
         try:
             if isinstance(raw_args, str):
                 raw_args = json.loads(raw_args) if raw_args.strip() else {}
@@ -587,7 +711,9 @@ class ToolRegistry:
             return ToolOutcome(name, {}, False, error=f"arguments are not valid JSON: {e.msg}")
         except ValidationError as e:
             msg = "; ".join(f"{'.'.join(map(str, err['loc'])) or 'arguments'}: {err['msg']}" for err in e.errors())
-            return ToolOutcome(name, raw_args if isinstance(raw_args, dict) else {}, False, error=f"invalid arguments: {msg[:400]}")
+            return ToolOutcome(
+                name, raw_args if isinstance(raw_args, dict) else {}, False, error=f"invalid arguments: {msg[:400]}"
+            )
         dumped = args.model_dump(exclude_none=True)
         try:
             result = _fit(spec.fn(ctx, args))
@@ -606,25 +732,57 @@ def _fit(result: dict, limit: int = MAX_RESULT_CHARS) -> dict:
 
 
 def build_registry() -> ToolRegistry:
-    return ToolRegistry([
-        ToolSpec("top_trades",
-                 "Ranked insider trades (open-market buys/sells, ranked by absolute net dollars per company) for the latest ranking, "
-                 "a given date, or the last N days. Start here for 'biggest', 'top', 'today's' trades.", TopTradesArgs, top_trades),
-        ToolSpec("filings_for",
-                 "Individual Form 4 transactions for one company (ticker) and/or one insider (owner) over the last N days, largest first, "
-                 "with buy/sell totals.", FilingsForArgs, filings_for),
-        ToolSpec("insider_history", "All stored open-market trades by one insider across companies, newest first, with per-company totals.",
-                 InsiderHistoryArgs, insider_history),
-        ToolSpec("cluster_events",
-                 "Companies where several distinct insiders bought (or sold) in the same window. Cluster buying is the stronger signal.",
-                 ClusterEventsArgs, cluster_events),
-        ToolSpec("insider_network",
-                 "Multi-hop: the other companies where one person is an insider (director/officer/10% owner) and what they did there.",
-                 InsiderNetworkArgs, insider_network),
-        ToolSpec("co_insiders",
-                 "Who else traded at one company recently, and how many other companies each of them is an insider at.",
-                 CoInsidersArgs, co_insiders),
-        ToolSpec("sentiment", "Aggregate social-media sentiment counts for one ticker (no post text).", SentimentArgs, sentiment),
-        ToolSpec("data_status", "Freshness: how old the data is (newest filing and latest ranking age in days), last pipeline run, ranking window, filing count.",
-                 DataStatusArgs, data_status),
-    ])
+    return ToolRegistry(
+        [
+            ToolSpec(
+                "top_trades",
+                "Ranked insider trades (open-market buys/sells, ranked by absolute net dollars per company) for the latest ranking, "
+                "a given date, or the last N days. Start here for 'biggest', 'top', 'today's' trades.",
+                TopTradesArgs,
+                top_trades,
+            ),
+            ToolSpec(
+                "filings_for",
+                "Individual Form 4 transactions for one company (ticker) and/or one insider (owner) over the last N days, largest first, "
+                "with buy/sell totals.",
+                FilingsForArgs,
+                filings_for,
+            ),
+            ToolSpec(
+                "insider_history",
+                "All stored open-market trades by one insider across companies, newest first, with per-company totals.",
+                InsiderHistoryArgs,
+                insider_history,
+            ),
+            ToolSpec(
+                "cluster_events",
+                "Companies where several distinct insiders bought (or sold) in the same window. Cluster buying is the stronger signal.",
+                ClusterEventsArgs,
+                cluster_events,
+            ),
+            ToolSpec(
+                "insider_network",
+                "Multi-hop: the other companies where one person is an insider (director/officer/10% owner) and what they did there.",
+                InsiderNetworkArgs,
+                insider_network,
+            ),
+            ToolSpec(
+                "co_insiders",
+                "Who else traded at one company recently, and how many other companies each of them is an insider at.",
+                CoInsidersArgs,
+                co_insiders,
+            ),
+            ToolSpec(
+                "sentiment",
+                "Aggregate social-media sentiment counts for one ticker (no post text).",
+                SentimentArgs,
+                sentiment,
+            ),
+            ToolSpec(
+                "data_status",
+                "Freshness: how old the data is (newest filing and latest ranking age in days), last pipeline run, ranking window, filing count.",
+                DataStatusArgs,
+                data_status,
+            ),
+        ]
+    )

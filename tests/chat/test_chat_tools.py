@@ -19,8 +19,16 @@ def sources(o):
 
 def test_schemas_are_plain_json_schema():
     tools = REG.openai_tools()
-    assert [t["function"]["name"] for t in tools] == ["top_trades", "filings_for", "insider_history", "cluster_events",
-                                                      "insider_network", "co_insiders", "sentiment", "data_status"]
+    assert [t["function"]["name"] for t in tools] == [
+        "top_trades",
+        "filings_for",
+        "insider_history",
+        "cluster_events",
+        "insider_network",
+        "co_insiders",
+        "sentiment",
+        "data_status",
+    ]
     for t in tools:
         blob = json.dumps(t)
         assert "$ref" not in blob and "$defs" not in blob and "anyOf" not in blob and '"title"' not in blob
@@ -53,11 +61,13 @@ def test_filings_for_ticker_has_totals_and_sources(memdb):
     assert o.result["totals"]["sell_value"] is None
     assert all(re.fullmatch(r"SEC Form 4 0001-26-00000\d", s) for s in sources(o))
     assert o.result["rows"][0]["dollar_value"] >= o.result["rows"][1]["dollar_value"]
-    assert o.result["window"]["to"] == "2026-11-13"            # anchored on the data, not on today's date
+    assert o.result["window"]["to"] == "2026-11-13"  # anchored on the data, not on today's date
 
 
 def test_filings_for_window_codes_and_owner_word_order(memdb):
-    assert run(memdb, "filings_for", {"owner": "Dana Whitfield", "days": 5}).n_rows == 1     # Oct 20 filing is outside 5 days
+    assert (
+        run(memdb, "filings_for", {"owner": "Dana Whitfield", "days": 5}).n_rows == 1
+    )  # Oct 20 filing is outside 5 days
     assert run(memdb, "filings_for", {"owner": "whitfield dana", "days": 30}).n_rows == 2
     assert run(memdb, "filings_for", {"ticker": "ACME", "days": 30, "codes": "P"}).n_rows == 0
     assert run(memdb, "filings_for", {"ticker": "ACME", "days": 30, "codes": ["S"]}).n_rows == 3
@@ -91,6 +101,7 @@ def test_sentiment_aggregates_only(memdb):
 
 def test_data_status_reports_age(memdb):
     from datetime import datetime
+
     o = run(memdb, "data_status", rank_window_days=14, now=lambda: datetime(2026, 11, 20, 12))
     r = o.result["rows"][0]
     assert r["source"] == "RUN run1" and r["filings_total"] == 8
@@ -134,21 +145,39 @@ def test_missing_tables_report_not_available():
     class Bare(MemDB):
         def __init__(self):
             import duckdb
+
             self.conn, self.sql_log = duckdb.connect(":memory:"), []
+
     b = Bare()
-    for name, args in [("top_trades", {}), ("filings_for", {"ticker": "A"}), ("sentiment", {"ticker": "A"}),
-                       ("insider_network", {"owner": "Bob"}), ("cluster_events", {})]:
+    for name, args in [
+        ("top_trades", {}),
+        ("filings_for", {"ticker": "A"}),
+        ("sentiment", {"ticker": "A"}),
+        ("insider_network", {"owner": "Bob"}),
+        ("cluster_events", {}),
+    ]:
         o = run(b, name, args)
         assert o.ok and o.result["available"] is False and o.n_rows == 0, name
 
 
 # ── validation / safety ──────────────────────────────────────────────────────
-@pytest.mark.parametrize("name,args", [
-    ("filings_for", {}), ("filings_for", {"ticker": "BAD TICKER!"}), ("filings_for", {"ticker": "A", "days": 0}),
-    ("filings_for", {"ticker": "A", "codes": ["PP"]}), ("top_trades", {"n": 99}), ("top_trades", {"date": "11/12/2026"}),
-    ("top_trades", {"date": "2026-11-12", "days": 3}), ("top_trades", {"direction": "HOLD"}), ("top_trades", {"bogus": 1}),
-    ("cluster_events", {"min_insiders": 1}), ("insider_history", {"owner": "x"}), ("sentiment", {}),
-])
+@pytest.mark.parametrize(
+    "name,args",
+    [
+        ("filings_for", {}),
+        ("filings_for", {"ticker": "BAD TICKER!"}),
+        ("filings_for", {"ticker": "A", "days": 0}),
+        ("filings_for", {"ticker": "A", "codes": ["PP"]}),
+        ("top_trades", {"n": 99}),
+        ("top_trades", {"date": "11/12/2026"}),
+        ("top_trades", {"date": "2026-11-12", "days": 3}),
+        ("top_trades", {"direction": "HOLD"}),
+        ("top_trades", {"bogus": 1}),
+        ("cluster_events", {"min_insiders": 1}),
+        ("insider_history", {"owner": "x"}),
+        ("sentiment", {}),
+    ],
+)
 def test_invalid_args_become_error_outcomes(memdb, name, args):
     o = run(memdb, name, args)
     assert not o.ok and o.error.startswith("invalid arguments") and json.loads(o.message)["error"] == o.error
@@ -158,7 +187,7 @@ def test_unknown_tool_and_bad_json(memdb):
     o = REG.call(ToolContext(memdb), "drop_tables", {})
     assert not o.ok and "unknown tool" in o.error and "top_trades" in o.error
     assert "not valid JSON" in REG.call(ToolContext(memdb), "top_trades", "{oops").error
-    assert REG.call(ToolContext(memdb), "top_trades", "").ok                    # empty arguments string == {}
+    assert REG.call(ToolContext(memdb), "top_trades", "").ok  # empty arguments string == {}
 
 
 def test_sql_injection_text_is_only_ever_a_bound_parameter(memdb):
@@ -166,17 +195,24 @@ def test_sql_injection_text_is_only_ever_a_bound_parameter(memdb):
     o = run(memdb, "filings_for", {"owner": evil})
     assert o.ok and o.n_rows == 0
     assert memdb.query("SELECT COUNT(*) FROM filings")[0][0] == 8
-    assert run(memdb, "insider_history", {"owner": "100%_\\"}).n_rows == 0     # LIKE wildcards are escaped
+    assert run(memdb, "insider_history", {"owner": "100%_\\"}).n_rows == 0  # LIKE wildcards are escaped
     assert not run(memdb, "filings_for", {"ticker": "A'; DROP TABLE filings;--"}).ok
-    for sql, params in memdb.sql_log:
+    for sql, _params in memdb.sql_log:
         assert "DROP" not in sql.upper() and "x'" not in sql
 
 
 def test_only_select_statements_are_issued(memdb):
     ctx = ToolContext(memdb)
-    for name, args in [("top_trades", {}), ("filings_for", {"ticker": "GLBX"}), ("insider_history", {"owner": "Priya"}),
-                       ("cluster_events", {}), ("insider_network", {"owner": "Priya"}), ("co_insiders", {"ticker": "GLBX"}),
-                       ("sentiment", {"ticker": "GLBX"}), ("data_status", {})]:
+    for name, args in [
+        ("top_trades", {}),
+        ("filings_for", {"ticker": "GLBX"}),
+        ("insider_history", {"owner": "Priya"}),
+        ("cluster_events", {}),
+        ("insider_network", {"owner": "Priya"}),
+        ("co_insiders", {"ticker": "GLBX"}),
+        ("sentiment", {"ticker": "GLBX"}),
+        ("data_status", {}),
+    ]:
         REG.call(ctx, name, args)
     assert memdb.sql_log
     for sql, _ in memdb.sql_log:
@@ -185,9 +221,14 @@ def test_only_select_statements_are_issued(memdb):
 
 def test_results_are_capped_in_size(memdb):
     for i in range(200):
-        memdb.conn.execute("INSERT INTO filings (accession_number, filing_date, issuer_ticker, insider_name) VALUES (?,?,?,?)",
-                           [f"BIG{i}", "2026-11-13 10:00", "BIG", "Name " * 12 + str(i)])
-        memdb.conn.execute("INSERT INTO transactions (id, accession_number, row_idx, transaction_date, code, shares, price_per_share, dollar_value) "
-                           "VALUES (?,?,?,?,?,?,?,?)", [1000 + i, f"BIG{i}", 0, "2026-11-12", "P", 1.0, 1.0, 1.0])
+        memdb.conn.execute(
+            "INSERT INTO filings (accession_number, filing_date, issuer_ticker, insider_name) VALUES (?,?,?,?)",
+            [f"BIG{i}", "2026-11-13 10:00", "BIG", "Name " * 12 + str(i)],
+        )
+        memdb.conn.execute(
+            "INSERT INTO transactions (id, accession_number, row_idx, transaction_date, code, shares, price_per_share, dollar_value) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            [1000 + i, f"BIG{i}", 0, "2026-11-12", "P", 1.0, 1.0, 1.0],
+        )
     o = run(memdb, "filings_for", {"ticker": "BIG", "limit": 30})
     assert len(o.message) <= 6200 and o.result["truncated"] and o.result["total_matched"] == 200

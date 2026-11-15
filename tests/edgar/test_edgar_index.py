@@ -1,4 +1,5 @@
 """Daily-index parsing, filing resolution and acceptance-time parsing. Offline."""
+
 import json
 from datetime import date, datetime
 from pathlib import Path
@@ -18,8 +19,10 @@ FOLDER = "https://www.sec.gov/Archives/edgar/data/9000001/000000000026000001"
 
 
 def test_daily_index_url():
-    assert ix.daily_index_url(date(2026, 3, 10)) == \
-        "https://www.sec.gov/Archives/edgar/daily-index/2026/QTR1/form.20260310.idx"
+    assert (
+        ix.daily_index_url(date(2026, 3, 10))
+        == "https://www.sec.gov/Archives/edgar/daily-index/2026/QTR1/form.20260310.idx"
+    )
     assert "QTR4/form.20261105.idx" in ix.daily_index_url(date(2026, 11, 5))
     assert "QTR3/" in ix.daily_index_url(date(2026, 9, 15))
 
@@ -28,7 +31,11 @@ def test_parse_form_idx_keeps_only_forms_4_and_4a_and_dedups_by_accession():
     entries = ix.parse_form_idx((SAMPLES / "form.20260310.idx").read_text())
     # accessions ...001 and ...002 are each listed twice (issuer + owner rows) -> one entry each
     assert [e.accession for e in entries] == [
-        "0000000000-26-000001", "0000000000-26-000002", "0000000000-26-000003", "0000000000-26-000006"]
+        "0000000000-26-000001",
+        "0000000000-26-000002",
+        "0000000000-26-000003",
+        "0000000000-26-000006",
+    ]
     assert [e.form_type for e in entries] == ["4", "4", "4/A", "4"]
     first = entries[0]
     assert first.company_name == "ACME WIDGETS INC"  # first listing (the issuer) wins
@@ -51,16 +58,29 @@ def test_parse_form_idx_requires_header():
 
 
 def test_fetch_daily_index_404_is_empty_list(tmp_path):
-    c = EdgarClient(user_agent="x", cache_dir=tmp_path, transport=httpx.MockTransport(lambda r: httpx.Response(404)),
-                    sleep=lambda s: None)
+    c = EdgarClient(
+        user_agent="x",
+        cache_dir=tmp_path,
+        transport=httpx.MockTransport(lambda r: httpx.Response(404)),
+        sleep=lambda s: None,
+    )
     assert ix.fetch_daily_index(c, date(2026, 3, 14)) == []
 
 
 def test_xml_candidates_skip_xsl_index_and_non_xml():
     listing = json.loads((SAMPLES / "index.json").read_text())
     assert ix.xml_candidates(listing) == ["form4.xml"]
-    tricky = {"directory": {"item": [{"name": "xslF345X05/form4.xml"}, {"name": "FilingSummary.xml"},
-                                     {"name": "a-index.xml"}, {"name": "primary_doc.xml"}, {"name": "wf-form4_1.xml"}]}}
+    tricky = {
+        "directory": {
+            "item": [
+                {"name": "xslF345X05/form4.xml"},
+                {"name": "FilingSummary.xml"},
+                {"name": "a-index.xml"},
+                {"name": "primary_doc.xml"},
+                {"name": "wf-form4_1.xml"},
+            ]
+        }
+    }
     assert ix.xml_candidates(tricky) == ["wf-form4_1.xml", "primary_doc.xml"]
 
 
@@ -72,7 +92,9 @@ def test_is_ownership_document():
 def test_acceptance_datetime_est_and_edt_to_naive_utc():
     html = (SAMPLES / f"{ACC}-index-headers.html").read_text()
     assert ix.parse_acceptance_datetime(html) == datetime(2026, 3, 10, 20, 30, 12)  # EDT (UTC-4)
-    assert ix.parse_acceptance_datetime("<ACCEPTANCE-DATETIME>20261105111501") == datetime(2026, 11, 5, 16, 15, 1)  # EST
+    assert ix.parse_acceptance_datetime("<ACCEPTANCE-DATETIME>20261105111501") == datetime(
+        2026, 11, 5, 16, 15, 1
+    )  # EST
     assert ix.parse_acceptance_datetime("ACCEPTANCE-DATETIME:\t20260115093000") == datetime(2026, 1, 15, 14, 30)
     assert ix.parse_acceptance_datetime("no header") is None
 
@@ -96,7 +118,9 @@ def _handler(counter):
 
 def test_fetch_filing_then_load_filing_fully_offline_from_cache(tmp_path):
     calls = []
-    c = EdgarClient(user_agent="x", cache_dir=tmp_path, transport=httpx.MockTransport(_handler(calls)), sleep=lambda s: None)
+    c = EdgarClient(
+        user_agent="x", cache_dir=tmp_path, transport=httpx.MockTransport(_handler(calls)), sleep=lambda s: None
+    )
     doc = ix.fetch_filing(c, "9000001", ACC)
     assert doc.xml_name == "form4.xml"
     assert doc.accepted_at == datetime(2026, 3, 10, 20, 30, 12)
@@ -128,8 +152,12 @@ def test_fetch_filing_skips_html_candidates_that_are_not_ownership_documents(tmp
 
 
 def test_fetch_filing_unknown_folder(tmp_path):
-    c = EdgarClient(user_agent="x", cache_dir=tmp_path, transport=httpx.MockTransport(lambda r: httpx.Response(404)),
-                    sleep=lambda s: None)
+    c = EdgarClient(
+        user_agent="x",
+        cache_dir=tmp_path,
+        transport=httpx.MockTransport(lambda r: httpx.Response(404)),
+        sleep=lambda s: None,
+    )
     with pytest.raises(FilingResolutionError):
         ix.fetch_filing(c, 9000001, ACC)
 

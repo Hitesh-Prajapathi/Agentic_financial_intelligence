@@ -10,11 +10,12 @@ Pure functions on DataFrames; no network, no file IO.  Conventions:
   overnight gap into the first session at which the news is tradable.
 * Windows ``(a, b)`` are inclusive trading-day offsets from day 0.
 """
+
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Iterable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -106,7 +107,11 @@ def _filing_events(rows: pd.DataFrame) -> pd.DataFrame:
     """Collapse trade rows to one candidate event per (ticker, accepted_at)."""
     r = rows.copy()
     r["_owners"] = r["owner_ciks"].map(_owner_set) if "owner_ciks" in r else [{"unknown"}] * len(r)
-    r["_value"] = r["shares"].astype(float) * r["price_per_share"].astype(float) if {"shares", "price_per_share"} <= set(r) else np.nan
+    r["_value"] = (
+        r["shares"].astype(float) * r["price_per_share"].astype(float)
+        if {"shares", "price_per_share"} <= set(r)
+        else np.nan
+    )
     out = []
     for (tk, at), g in r.groupby(["issuer_ticker", "accepted_at"], sort=False):
         owners = set().union(*g["_owners"])
@@ -138,7 +143,9 @@ def _clean_rows(rows_df: pd.DataFrame, code: str, min_price) -> pd.DataFrame:
     return r
 
 
-def build_events(rows_df: pd.DataFrame, kind: str, *, min_price: float | None = None, dedup_days: int | None = 30, **params) -> pd.DataFrame:
+def build_events(
+    rows_df: pd.DataFrame, kind: str, *, min_price: float | None = None, dedup_days: int | None = 30, **params
+) -> pd.DataFrame:
     """Build an events table (one row per event) from parsed Form 4 rows.
 
     Output columns: ``event_id, kind, ticker, accepted_at, owner_ciks, n_owners,
@@ -178,7 +185,17 @@ def build_events(rows_df: pd.DataFrame, kind: str, *, min_price: float | None = 
         rx = re.compile(params.get("title_regex", CEO_CFO_RE.pattern), re.I)
         rows = rows[rows["officer_title"].fillna("").astype(str).map(lambda s: bool(rx.search(s)))]
 
-    cols = ["event_id", "kind", "ticker", "accepted_at", "owner_ciks", "n_owners", "total_shares", "total_value", "price"]
+    cols = [
+        "event_id",
+        "kind",
+        "ticker",
+        "accepted_at",
+        "owner_ciks",
+        "n_owners",
+        "total_shares",
+        "total_value",
+        "price",
+    ]
     if rows.empty:
         return pd.DataFrame(columns=cols)
 
@@ -222,7 +239,9 @@ def _cluster_events(rows: pd.DataFrame, k: int, window_days: int) -> pd.DataFram
                         "price": float(w["price"].median()),
                     }
                 )
-    return pd.DataFrame(out, columns=["ticker", "accepted_at", "owner_ciks", "n_owners", "total_shares", "total_value", "price"])
+    return pd.DataFrame(
+        out, columns=["ticker", "accepted_at", "owner_ciks", "n_owners", "total_shares", "total_value", "price"]
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -481,15 +500,21 @@ def run_event_study(
     rows, drop_reasons = [], {}
     for e in ev.to_dict("records"):
         tk = str(e["ticker"]).upper()
-        base = {"event_id": e["event_id"], "ticker": tk, "event_day": e["event_day"], "status": "ok", "window_notes": ""}
+        base = {
+            "event_id": e["event_id"],
+            "ticker": tk,
+            "event_day": e["event_day"],
+            "status": "ok",
+            "window_notes": "",
+        }
         for extra in ("kind", "accepted_at", "n_owners", "total_value"):
             if extra in ev.columns:
                 base[extra] = e[extra]
 
         def drop(reason):
-            base["status"] = reason
+            base["status"] = reason  # noqa: B023  (called within the same loop iteration)
             drop_reasons[reason] = drop_reasons.get(reason, 0) + 1
-            rows.append(base)
+            rows.append(base)  # noqa: B023
 
         d0 = e["event_day"]
         if d0 is None or pd.isna(d0) or d0 not in cal:
@@ -589,7 +614,9 @@ def run_event_study(
         "tickers_with_prices": sum(1 for t in tickers_req if t in prices and len(prices[t])),
         "tickers_missing_prices": [t for t in tickers_req if t not in prices or len(prices[t]) == 0],
         "ok_rate": n_ok / len(ev) if len(ev) else np.nan,
-        "window_n": {wname(a, b): int(tidy[f"car_mm_{wname(a, b)}"].notna().sum()) if len(tidy) else 0 for a, b in windows},
+        "window_n": {
+            wname(a, b): int(tidy[f"car_mm_{wname(a, b)}"].notna().sum()) if len(tidy) else 0 for a, b in windows
+        },
     }
     cts = None
     if ff is not None and n_ok:
@@ -601,7 +628,14 @@ def run_event_study(
         "results": results,
         "coverage": coverage,
         "calendar_time": cts,
-        "params": {"windows": list(windows), "est_window": est_window, "min_est_obs": min_est_obs, "min_price": min_price, "n_boot": n_boot, "seed": seed},
+        "params": {
+            "windows": list(windows),
+            "est_window": est_window,
+            "min_est_obs": min_est_obs,
+            "min_price": min_price,
+            "n_boot": n_boot,
+            "seed": seed,
+        },
     }
 
 

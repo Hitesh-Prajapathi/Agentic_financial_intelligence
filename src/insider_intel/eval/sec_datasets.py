@@ -15,6 +15,7 @@ assumption (SK ascending == order in the filing XML) is taken from the readme wo
 should be re-checked against a real quarter; the scorer does not rely on it (it matches
 rows by content, with row_idx only as tie-break).
 """
+
 from __future__ import annotations
 
 import os
@@ -27,13 +28,32 @@ import pandas as pd
 
 URL_TEMPLATE = "https://www.sec.gov/files/structureddata/data/insider-transactions-data-sets/{year}q{q}_form345.zip"
 DEFAULT_UA = "insider-intel-research-dev (open-source research tool; contact via repository)"
-TABLES = ["SUBMISSION", "REPORTINGOWNER", "NONDERIV_TRANS", "NONDERIV_HOLDING",
-          "DERIV_TRANS", "DERIV_HOLDING", "FOOTNOTES", "OWNER_SIGNATURE"]
+TABLES = [
+    "SUBMISSION",
+    "REPORTINGOWNER",
+    "NONDERIV_TRANS",
+    "NONDERIV_HOLDING",
+    "DERIV_TRANS",
+    "DERIV_HOLDING",
+    "FOOTNOTES",
+    "OWNER_SIGNATURE",
+]
 
 OFFICIAL_COLUMNS = [
-    "accession_number", "row_idx", "form_type", "issuer_cik", "issuer_ticker", "owner_ciks",
-    "transaction_date", "code", "shares", "price_per_share", "acquired_disposed",
-    "post_transaction_shares", "direct_indirect", "security_title",
+    "accession_number",
+    "row_idx",
+    "form_type",
+    "issuer_cik",
+    "issuer_ticker",
+    "owner_ciks",
+    "transaction_date",
+    "code",
+    "shares",
+    "price_per_share",
+    "acquired_disposed",
+    "post_transaction_shares",
+    "direct_indirect",
+    "security_title",
 ]
 
 
@@ -75,8 +95,9 @@ def quarter_url(year: int, q: int) -> str:
     return URL_TEMPLATE.format(year=year, q=q)
 
 
-def download_quarter(year: int, q: int, dest_dir: str | Path = "data/sec_datasets",
-                     force: bool = False, timeout: float = 120.0) -> Path:
+def download_quarter(
+    year: int, q: int, dest_dir: str | Path = "data/sec_datasets", force: bool = False, timeout: float = 120.0
+) -> Path:
     """Download one quarterly zip (cached). One request, polite UA. Raises RuntimeError on 403 etc."""
     import httpx
 
@@ -87,8 +108,13 @@ def download_quarter(year: int, q: int, dest_dir: str | Path = "data/sec_dataset
         return path
     ua = os.environ.get("SEC_USER_AGENT") or DEFAULT_UA
     tmp = path.with_suffix(".part")
-    with httpx.stream("GET", quarter_url(year, q), headers={"User-Agent": ua, "Accept-Encoding": "gzip, deflate"},
-                      timeout=timeout, follow_redirects=True) as r:
+    with httpx.stream(
+        "GET",
+        quarter_url(year, q),
+        headers={"User-Agent": ua, "Accept-Encoding": "gzip, deflate"},
+        timeout=timeout,
+        follow_redirects=True,
+    ) as r:
         if r.status_code != 200:
             raise RuntimeError(f"SEC download failed: HTTP {r.status_code} for {quarter_url(year, q)}")
         with open(tmp, "wb") as f:
@@ -128,7 +154,9 @@ def load_quarter(path: str | Path) -> duckdb.DuckDBPyConnection:
     Typed views: ``submission``, ``reportingowner``, ``nonderiv_trans`` (+ the rest typed as varchar).
     """
     d = _extract(Path(path))
-    files = {p.stem.upper(): p for p in d.iterdir() if p.suffix.lower() in (".tsv", ".txt") and p.stem.upper() in TABLES}
+    files = {
+        p.stem.upper(): p for p in d.iterdir() if p.suffix.lower() in (".tsv", ".txt") and p.stem.upper() in TABLES
+    }
     con = duckdb.connect(":memory:")
     # Ground truth must never lose rows silently: malformed lines go to a rejects table and are counted in
     # `load_rejects`, which callers (and the parse-accuracy report) must surface.
@@ -138,7 +166,9 @@ def load_quarter(path: str | Path) -> duckdb.DuckDBPyConnection:
         con.execute(
             f"CREATE TABLE raw_{t} AS SELECT row_number() OVER () AS _rn, * FROM "
             f"read_csv(?, delim='\t', header=true, all_varchar=true, quote='', escape='', null_padding=false, "
-            f"store_rejects=true, rejects_table='rejects_{t}', rejects_scan='rejects_scan_{t}')", [str(p)])
+            f"store_rejects=true, rejects_table='rejects_{t}', rejects_scan='rejects_scan_{t}')",
+            [str(p)],
+        )
         # DuckDB can log one bad line more than once (one entry per error it finds), so count distinct lines.
         n_rej = con.execute(f"SELECT COUNT(DISTINCT line) FROM rejects_{t}").fetchone()[0]
         con.execute("INSERT INTO load_rejects VALUES (?, ?)", [name, n_rej])
@@ -168,12 +198,12 @@ SELECT _rn,
        ACCESSION_NUMBER,
        TRY_CAST(NULLIF(trim(NONDERIV_TRANS_SK),'') AS BIGINT) AS sk,
        NULLIF(trim(SECURITY_TITLE),'') AS security_title,
-       {_d('TRANS_DATE')} AS trans_date,
+       {_d("TRANS_DATE")} AS trans_date,
        NULLIF(trim(TRANS_CODE),'') AS trans_code,
-       {_n('TRANS_SHARES')} AS trans_shares,
-       {_n('TRANS_PRICEPERSHARE')} AS trans_price,
+       {_n("TRANS_SHARES")} AS trans_shares,
+       {_n("TRANS_PRICEPERSHARE")} AS trans_price,
        NULLIF(trim(TRANS_ACQUIRED_DISP_CD),'') AS acquired_disposed,
-       {_n('SHRS_OWND_FOLWNG_TRANS')} AS post_shares,
+       {_n("SHRS_OWND_FOLWNG_TRANS")} AS post_shares,
        NULLIF(trim(DIRECT_INDIRECT_OWNERSHIP),'') AS direct_indirect
 FROM raw_nonderiv_trans
 """
@@ -204,7 +234,8 @@ def official_rows(con: duckdb.DuckDBPyConnection, accessions: list[str] | None =
     df["issuer_cik"] = df["issuer_cik"].map(norm_cik)
     df["issuer_ticker"] = df["issuer_ticker"].map(norm_ticker)
     df["transaction_date"] = pd.Series(
-        [None if pd.isna(x) else pd.Timestamp(x).date() for x in df["transaction_date"]], index=df.index, dtype=object)
+        [None if pd.isna(x) else pd.Timestamp(x).date() for x in df["transaction_date"]], index=df.index, dtype=object
+    )
     df["sk"] = df["sk"].fillna(float("inf"))
     df = df.sort_values(["accession_number", "sk", "_rn"], kind="mergesort")
     df["row_idx"] = df.groupby("accession_number").cumcount()

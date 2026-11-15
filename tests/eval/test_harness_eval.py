@@ -4,8 +4,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from insider_intel.eval.harness import (BudgetExceeded, BudgetPlanner, ReportWriter, ResponseCache,
-                                        bootstrap_ci, md_table, prompt_hash)
+from insider_intel.eval.harness import (
+    BudgetExceeded,
+    BudgetPlanner,
+    ReportWriter,
+    ResponseCache,
+    bootstrap_ci,
+    md_table,
+    prompt_hash,
+)
 
 
 def test_prompt_hash():
@@ -24,8 +31,12 @@ def test_md_table_list_and_df():
 
 def test_report_writer(tmp_path):
     w = ReportWriter("demo", root=tmp_path)
-    p = w.write(metrics={"acc": 0.9}, tables={"Results": [{"x": 1, "y": 2.0}]}, notes="hello notes",
-                metadata={"dataset": "d", "dataset_sha256": "abc", "seed": 0, "models": ["m1"]})
+    p = w.write(
+        metrics={"acc": 0.9},
+        tables={"Results": [{"x": 1, "y": 2.0}]},
+        notes="hello notes",
+        metadata={"dataset": "d", "dataset_sha256": "abc", "seed": 0, "models": ["m1"]},
+    )
     d = tmp_path / "demo"
     assert p.parent == d and p.name.endswith(".json")
     assert (d / "latest.md").exists() and (d / "latest.json").exists()
@@ -47,8 +58,13 @@ def test_cache_hit_miss(tmp_path):
         calls.append(1)
         return {"text": "hi"}
 
-    kp = dict(provider="groq", model="m", prompt_hash=prompt_hash("p"),
-              messages=[{"role": "user", "content": "x"}], params={"t": 0, "a": 1})
+    kp = dict(
+        provider="groq",
+        model="m",
+        prompt_hash=prompt_hash("p"),
+        messages=[{"role": "user", "content": "x"}],
+        params={"t": 0, "a": 1},
+    )
     assert c.cached_call(fn, kp) == {"text": "hi"}
     assert c.cached_call(fn, kp) == {"text": "hi"}
     assert len(calls) == 1 and c.stats() == {"hits": 1, "misses": 1}
@@ -85,7 +101,10 @@ def test_bootstrap_ci():
     assert bootstrap_ci(x, n=500, seed=0) == (p, lo, hi)  # deterministic
     yt = rng.integers(0, 2, 300)
     yp = np.where(rng.random(300) < 0.8, yt, 1 - yt)
-    acc = lambda a, b: float((a == b).mean())
+
+    def acc(a, b):
+        return float((a == b).mean())
+
     p2, lo2, hi2 = bootstrap_ci(yt, yp, acc, n=500)
     assert lo2 < p2 < hi2 and 0.7 < p2 < 0.9
     assert bootstrap_ci([1, 1, 1, 1], n=50) == (1.0, 1.0, 1.0)

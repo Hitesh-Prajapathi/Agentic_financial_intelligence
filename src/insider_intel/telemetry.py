@@ -3,6 +3,7 @@
 Cost is NOTIONAL: tokens x `settings.llm_list_prices` (approximate public list prices, an ESTIMATE). Only free-tier
 models are used, so nothing is billed; the number answers "what would this have cost at paid rates".
 """
+
 from __future__ import annotations
 
 import logging
@@ -25,6 +26,7 @@ def estimate_cost_usd(cfg, model: str, prompt_tokens: int, completion_tokens: in
 
 def make_llm_call_writer(db, cfg):
     """Return an `on_call` hook that inserts into llm_calls. Best effort: never raises; no-op on a read-only DB."""
+
     def write(rec: dict) -> None:
         if getattr(db, "read_only", False):
             return
@@ -36,11 +38,25 @@ def make_llm_call_writer(db, cfg):
                 """INSERT INTO llm_calls (ts, run_id, session_id, purpose, provider, model, prompt_hash, status, latency_ms,
                                           prompt_tokens, completion_tokens, n_tool_calls, est_cost_usd)
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                [ts, current_run_id.get(), current_session_id.get(), rec.get("purpose"), rec.get("provider"), rec.get("model"),
-                 rec.get("prompt_hash"), rec.get("status"), int(rec.get("latency_ms") or 0), pt, ct,
-                 int(rec.get("n_tool_calls") or 0), estimate_cost_usd(cfg, rec.get("model") or "", pt, ct)])
+                [
+                    ts,
+                    current_run_id.get(),
+                    current_session_id.get(),
+                    rec.get("purpose"),
+                    rec.get("provider"),
+                    rec.get("model"),
+                    rec.get("prompt_hash"),
+                    rec.get("status"),
+                    int(rec.get("latency_ms") or 0),
+                    pt,
+                    ct,
+                    int(rec.get("n_tool_calls") or 0),
+                    estimate_cost_usd(cfg, rec.get("model") or "", pt, ct),
+                ],
+            )
         except Exception:  # noqa: BLE001 - telemetry must never break a call
             logger.warning("llm_calls write failed", exc_info=True)
+
     return write
 
 
@@ -50,7 +66,8 @@ def llm_usage(db) -> dict:
         n, ok, p50, p95, ptok, ctok, cost = db.query(
             """SELECT COUNT(*), SUM(CASE WHEN status = 'ok' THEN 1 ELSE 0 END), quantile_cont(latency_ms, 0.5),
                       quantile_cont(latency_ms, 0.95), SUM(prompt_tokens), SUM(completion_tokens), SUM(est_cost_usd)
-               FROM llm_calls WHERE status = 'ok'""")[0]
+               FROM llm_calls WHERE status = 'ok'"""
+        )[0]
         total, failed = db.query("SELECT COUNT(*), SUM(CASE WHEN status <> 'ok' THEN 1 ELSE 0 END) FROM llm_calls")[0]
         if not total:
             return {}
@@ -60,10 +77,18 @@ def llm_usage(db) -> dict:
                                   FROM llm_calls GROUP BY 1 ORDER BY calls DESC""")
         by_purpose = db.query_df("""SELECT purpose, COUNT(*) AS calls, SUM(CASE WHEN status <> 'ok' THEN 1 ELSE 0 END) AS failed
                                     FROM llm_calls GROUP BY 1 ORDER BY calls DESC""")
-        return {"calls": int(total), "failed": int(failed or 0), "failure_rate": (failed or 0) / total,
-                "p50_ms": float(p50 or 0), "p95_ms": float(p95 or 0), "prompt_tokens": int(ptok or 0),
-                "completion_tokens": int(ctok or 0), "est_cost_usd": float(cost or 0), "by_model": by_model,
-                "by_purpose": by_purpose}
+        return {
+            "calls": int(total),
+            "failed": int(failed or 0),
+            "failure_rate": (failed or 0) / total,
+            "p50_ms": float(p50 or 0),
+            "p95_ms": float(p95 or 0),
+            "prompt_tokens": int(ptok or 0),
+            "completion_tokens": int(ctok or 0),
+            "est_cost_usd": float(cost or 0),
+            "by_model": by_model,
+            "by_purpose": by_purpose,
+        }
     except Exception:  # noqa: BLE001
         logger.warning("llm_usage failed", exc_info=True)
         return {}

@@ -9,6 +9,7 @@ Each argument is ``cik:accession`` where cik is any CIK on the filing (issuer or
 Files land as ``<out>/<accession>.xml`` plus ``<accession>.meta.json`` (acceptance time). Existing
 files are never overwritten (the cache is immutable). Importing this module does no network I/O.
 """
+
 from __future__ import annotations
 
 import argparse

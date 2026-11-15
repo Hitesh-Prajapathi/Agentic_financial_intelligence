@@ -3,6 +3,7 @@
 Output is validated strictly: only well-formed `bullish|bearish|neutral` entries survive; anything the model
 skipped or mangled stays unclassified (no fabricated defaults). Tweets are untrusted data.
 """
+
 import json
 import logging
 import re
@@ -35,19 +36,28 @@ def parse_batch(response: dict, n: int) -> dict[int, tuple[str, float]]:
     return out
 
 
-def classify(llm, tweets: list[dict], *, batch_size: int = DEFAULT_BATCH_SIZE,
-             models: list[tuple[str, str]] | None = None, prompt: str | None = None) -> tuple[list[dict], dict]:
+def classify(
+    llm,
+    tweets: list[dict],
+    *,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    models: list[tuple[str, str]] | None = None,
+    prompt: str | None = None,
+) -> tuple[list[dict], dict]:
     """tweets: [{tweet_id, ticker, text}] -> (labelled rows, meta). Missing/invalid answers are left unlabelled."""
     prompt = prompt if prompt is not None else load_prompt("sentiment_agent")
     rows, meta = [], {"batches": 0, "batches_failed": 0, "models": {}, "errors": []}
     for i in range(0, len(tweets), batch_size):
-        batch = tweets[i:i + batch_size]
+        batch = tweets[i : i + batch_size]
         payload = json.dumps([{"i": j + 1, "t": clean_tweet(t["text"])} for j, t in enumerate(batch)])
         meta["batches"] += 1
         try:
             resp, r = llm.chat_json(
                 [{"role": "system", "content": prompt}, {"role": "user", "content": payload}],
-                max_tokens=2500, purpose="sentiment", models=models)
+                max_tokens=2500,
+                purpose="sentiment",
+                models=models,
+            )
         except LLMError as e:
             meta["batches_failed"] += 1
             meta["errors"].append(str(e)[:160])
@@ -56,6 +66,13 @@ def classify(llm, tweets: list[dict], *, batch_size: int = DEFAULT_BATCH_SIZE,
         meta["models"][r.label] = meta["models"].get(r.label, 0) + 1
         for idx, (label, conf) in parse_batch(resp, len(batch)).items():
             t = batch[idx - 1]
-            rows.append({"tweet_id": t["tweet_id"], "ticker": t["ticker"], "sentiment_label": label,
-                         "confidence_score": conf, "model": r.label})
+            rows.append(
+                {
+                    "tweet_id": t["tweet_id"],
+                    "ticker": t["ticker"],
+                    "sentiment_label": label,
+                    "confidence_score": conf,
+                    "model": r.label,
+                }
+            )
     return rows, meta

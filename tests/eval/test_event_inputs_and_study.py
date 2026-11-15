@@ -4,6 +4,7 @@ from datetime import date
 import numpy as np
 import pandas as pd
 import pytest
+from synth_official import write_quarter_zip
 
 from insider_intel.eval import __main__ as cli
 from insider_intel.eval import event_inputs as ei
@@ -11,13 +12,15 @@ from insider_intel.eval import event_study_run as esr
 from insider_intel.eval import ticker_map as tm
 from insider_intel.market import event_study as es
 from insider_intel.market import prices as pr
-from synth_official import write_quarter_zip
 
 
 # ------------------------------------------------------------------ ticker map
 def test_parse_company_tickers_shapes():
-    d = {"0": {"cik_str": 1652044, "ticker": "GOOGL", "title": "Alphabet"}, "1": {"cik_str": 1652044, "ticker": "GOOG", "title": "Alphabet"},
-         "2": {"cik_str": "0000320193", "ticker": "aapl", "title": "Apple"}}
+    d = {
+        "0": {"cik_str": 1652044, "ticker": "GOOGL", "title": "Alphabet"},
+        "1": {"cik_str": 1652044, "ticker": "GOOG", "title": "Alphabet"},
+        "2": {"cik_str": "0000320193", "ticker": "aapl", "title": "Apple"},
+    }
     m = tm.parse_company_tickers(d)
     assert m == {"1652044": ["GOOGL", "GOOG"], "320193": ["AAPL"]}
     ex = {"fields": ["cik", "name", "ticker", "exchange"], "data": [[320193, "Apple", "AAPL", "Nasdaq"]]}
@@ -52,20 +55,70 @@ def test_load_company_tickers_cache_and_no_client(tmp_path):
 
 # ------------------------------------------------------------------ historical event-input builder
 FILINGS = [
-    dict(acc="0000000001-25-000001", cik="0000111", ticker="AAA", filed="23-MAY-2025", aff="", owners=[("0000901", "Chief Executive Officer"), ("0000902", "")],
-         rows=[("21-MAY-2025", "P", 100, 10, "A"), ("21-MAY-2025", "M", 5, 1, "A")]),
-    dict(acc="0000000001-25-000002", cik="0000111", ticker="AAA", filed="24-MAY-2025", aff="1", owners=[("0000903", "CFO")],
-         rows=[("22-MAY-2025", "S", 50, 12, "D")]),
-    dict(acc="0000000001-25-000003", cik="0000111", ticker="AAA", filed="25-MAY-2025", aff="0", owners=[("0000903", "CFO")],
-         rows=[("22-MAY-2025", "S", 20, 12, "D")]),
-    dict(acc="0000000001-25-000004", cik="0000111", ticker="AAA", filed="26-MAY-2025", aff="", owners=[("0000903", "CFO")],
-         rows=[("22-MAY-2025", "S", 20, 12, "D")]),   # blank flag -> None, never False
-    dict(acc="0000000001-25-000005", form="4/A", cik="0000111", ticker="AAA", filed="26-MAY-2025", aff="", owners=[("0000903", "")],
-         rows=[("22-MAY-2025", "P", 1, 10, "A")]),
-    dict(acc="0000000001-25-000006", cik="0000222", ticker="", filed="23-MAY-2025", aff="", owners=[("0000904", "")],
-         rows=[("22-MAY-2025", "P", 10, 5, "A")]),   # no ticker anywhere
-    dict(acc="0000000001-25-000007", cik="0000333", ticker="dead", filed="23-MAY-2025", aff="", owners=[("0000905", "")],
-         rows=[("22-MAY-2025", "P", 10, 5, "A")]),   # filing ticker fallback
+    dict(
+        acc="0000000001-25-000001",
+        cik="0000111",
+        ticker="AAA",
+        filed="23-MAY-2025",
+        aff="",
+        owners=[("0000901", "Chief Executive Officer"), ("0000902", "")],
+        rows=[("21-MAY-2025", "P", 100, 10, "A"), ("21-MAY-2025", "M", 5, 1, "A")],
+    ),
+    dict(
+        acc="0000000001-25-000002",
+        cik="0000111",
+        ticker="AAA",
+        filed="24-MAY-2025",
+        aff="1",
+        owners=[("0000903", "CFO")],
+        rows=[("22-MAY-2025", "S", 50, 12, "D")],
+    ),
+    dict(
+        acc="0000000001-25-000003",
+        cik="0000111",
+        ticker="AAA",
+        filed="25-MAY-2025",
+        aff="0",
+        owners=[("0000903", "CFO")],
+        rows=[("22-MAY-2025", "S", 20, 12, "D")],
+    ),
+    dict(
+        acc="0000000001-25-000004",
+        cik="0000111",
+        ticker="AAA",
+        filed="26-MAY-2025",
+        aff="",
+        owners=[("0000903", "CFO")],
+        rows=[("22-MAY-2025", "S", 20, 12, "D")],
+    ),  # blank flag -> None, never False
+    dict(
+        acc="0000000001-25-000005",
+        form="4/A",
+        cik="0000111",
+        ticker="AAA",
+        filed="26-MAY-2025",
+        aff="",
+        owners=[("0000903", "")],
+        rows=[("22-MAY-2025", "P", 1, 10, "A")],
+    ),
+    dict(
+        acc="0000000001-25-000006",
+        cik="0000222",
+        ticker="",
+        filed="23-MAY-2025",
+        aff="",
+        owners=[("0000904", "")],
+        rows=[("22-MAY-2025", "P", 10, 5, "A")],
+    ),  # no ticker anywhere
+    dict(
+        acc="0000000001-25-000007",
+        cik="0000333",
+        ticker="dead",
+        filed="23-MAY-2025",
+        aff="",
+        owners=[("0000905", "")],
+        rows=[("22-MAY-2025", "P", 10, 5, "A")],
+    ),  # filing ticker fallback
 ]
 
 
@@ -91,7 +144,10 @@ def test_extract_and_build_event_rows(tmp_path):
     # owners joint-normalised, titles joined, ticker sources recorded
     r1 = by.loc["0000000001-25-000001"]
     assert r1["owner_ciks"] == "901|902" and "Chief Executive Officer" in r1["officer_title"]
-    assert by.loc["0000000001-25-000007", "ticker_source"] == "filing_fallback" and by.loc["0000000001-25-000007", "issuer_ticker"] == "DEAD"
+    assert (
+        by.loc["0000000001-25-000007", "ticker_source"] == "filing_fallback"
+        and by.loc["0000000001-25-000007", "issuer_ticker"] == "DEAD"
+    )
 
     ev = es.build_events(rows, "officer_buy", min_price=1.0)
     assert list(ev["ticker"]) == ["AAA"] and ev.loc[0, "n_owners"] == 2
@@ -109,7 +165,16 @@ def test_missing_aff_column_gives_unknown_not_false(tmp_path):
 
 
 def test_parse_aff():
-    assert [ei.parse_aff(v) for v in ("1", "true", "Y", "0", "false", "", None, "?")] == [True, True, True, False, False, None, None, None]
+    assert [ei.parse_aff(v) for v in ("1", "true", "Y", "0", "false", "", None, "?")] == [
+        True,
+        True,
+        True,
+        False,
+        False,
+        None,
+        None,
+        None,
+    ]
 
 
 def _cal_with_holiday():
@@ -117,15 +182,18 @@ def _cal_with_holiday():
     return cal.delete(cal.get_loc(pd.Timestamp("2025-05-26")))  # Memorial Day
 
 
-@pytest.mark.parametrize("filed,expected", [
-    ("2025-05-23", "2025-05-27"),   # Friday before a Monday holiday
-    ("2025-03-07", "2025-03-10"),   # Friday, EST
-    ("2025-03-10", "2025-03-11"),   # first Monday of EDT
-    ("2025-10-31", "2025-11-03"),   # Friday before DST ends
-    ("2025-11-03", "2025-11-04"),   # first Monday of EST
-    ("2025-06-03", "2025-06-04"),
-    ("2025-06-07", "2025-06-09"),   # Saturday filing date
-])
+@pytest.mark.parametrize(
+    "filed,expected",
+    [
+        ("2025-05-23", "2025-05-27"),  # Friday before a Monday holiday
+        ("2025-03-07", "2025-03-10"),  # Friday, EST
+        ("2025-03-10", "2025-03-11"),  # first Monday of EDT
+        ("2025-10-31", "2025-11-03"),  # Friday before DST ends
+        ("2025-11-03", "2025-11-04"),  # first Monday of EST
+        ("2025-06-03", "2025-06-04"),
+        ("2025-06-07", "2025-06-09"),  # Saturday filing date
+    ],
+)
 def test_filing_date_stamp_gives_strictly_next_session(filed, expected):
     stamp = ei.info_timestamp(pd.Series([pd.Timestamp(filed)])).iloc[0]
     assert es.event_day(stamp, _cal_with_holiday()) == pd.Timestamp(expected)
@@ -137,7 +205,9 @@ def _prices_csv(path, cal, seed, p0=50.0, sd=0.012):
     r = rng.normal(0.0004, sd, len(cal))
     r[0] = 0
     p = p0 * np.cumprod(1 + r)
-    pd.DataFrame({"date": cal, "open": p, "high": p, "low": p, "close": p, "adj_close": p, "volume": 1e6}).to_csv(path, index=False)
+    pd.DataFrame({"date": cal, "open": p, "high": p, "low": p, "close": p, "adj_close": p, "volume": 1e6}).to_csv(
+        path, index=False
+    )
 
 
 def test_dry_run_end_to_end_offline(tmp_path, monkeypatch):
@@ -147,9 +217,17 @@ def test_dry_run_end_to_end_offline(tmp_path, monkeypatch):
     filings = []
     for i, t in enumerate(tickers):
         for n, (d, acc_n) in enumerate([("14-APR-2025", 1), ("22-APR-2025", 2)]):
-            filings.append(dict(acc=f"00000000{i}{n}-25-00000{acc_n}", cik=str(1000 + i), ticker=t, filed=d, aff="0",
-                                owners=[(f"{5000 + i * 10 + n}", "Chief Executive Officer" if n == 0 else "Director")],
-                                rows=[("10-APR-2025", "P", 100, 20 + i, "A"), ("11-APR-2025", "S", 50, 20 + i, "D")]))
+            filings.append(
+                dict(
+                    acc=f"00000000{i}{n}-25-00000{acc_n}",
+                    cik=str(1000 + i),
+                    ticker=t,
+                    filed=d,
+                    aff="0",
+                    owners=[(f"{5000 + i * 10 + n}", "Chief Executive Officer" if n == 0 else "Director")],
+                    rows=[("10-APR-2025", "P", 100, 20 + i, "A"), ("11-APR-2025", "S", 50, 20 + i, "D")],
+                )
+            )
     write_quarter_zip(data / "2025q2_form345.zip", filings[:6])
     write_quarter_zip(data / "2025q3_form345.zip", filings[6:])
     cal = pd.bdate_range("2023-01-02", "2025-10-14")
@@ -159,12 +237,42 @@ def test_dry_run_end_to_end_offline(tmp_path, monkeypatch):
     ct.write_text(json.dumps({str(i): {"cik_str": 1000 + i, "ticker": t, "title": t} for i, t in enumerate(tickers)}))
     ffd = pd.bdate_range("2023-01-02", "2025-09-30")
     rng = np.random.default_rng(1)
-    pr.write_parquet(pd.DataFrame({"date": ffd, "mkt_rf": rng.normal(0, .01, len(ffd)), "smb": rng.normal(0, .005, len(ffd)),
-                                   "hml": rng.normal(0, .005, len(ffd)), "rf": 0.0001}), pc / "ff3_daily.parquet")
-    args = cli.build_parser().parse_args([
-        "event-study", "--dry-run", "--from-year", "2025", "--to-year", "2025", "--prices", f"csvdir:{csv}",
-        "--data-dir", str(data), "--rows-cache", str(rc_), "--tickers-cache", str(ct), "--price-cache", str(pc),
-        "--reports-root", str(tmp_path / "rep"), "--n-boot", "50"])
+    pr.write_parquet(
+        pd.DataFrame(
+            {
+                "date": ffd,
+                "mkt_rf": rng.normal(0, 0.01, len(ffd)),
+                "smb": rng.normal(0, 0.005, len(ffd)),
+                "hml": rng.normal(0, 0.005, len(ffd)),
+                "rf": 0.0001,
+            }
+        ),
+        pc / "ff3_daily.parquet",
+    )
+    args = cli.build_parser().parse_args(
+        [
+            "event-study",
+            "--dry-run",
+            "--from-year",
+            "2025",
+            "--to-year",
+            "2025",
+            "--prices",
+            f"csvdir:{csv}",
+            "--data-dir",
+            str(data),
+            "--rows-cache",
+            str(rc_),
+            "--tickers-cache",
+            str(ct),
+            "--price-cache",
+            str(pc),
+            "--reports-root",
+            str(tmp_path / "rep"),
+            "--n-boot",
+            "50",
+        ]
+    )
     msgs = []
     rc = esr.run_study(args, today=date(2025, 10, 15), out=msgs.append)
     assert rc == 0, msgs
@@ -175,7 +283,9 @@ def test_dry_run_end_to_end_offline(tmp_path, monkeypatch):
     ids = [r["id"] for r in js["metrics"]["primary"]]
     assert ids == ["H1", "H2", "H3"]
     assert js["metrics"]["price_coverage"]["found"] == 7  # six tickers + SPY
-    assert "Pre-registered items: status" in js["tables"] and any(r["status"] == "deferred" for r in js["tables"]["Pre-registered items: status"])
+    assert "Pre-registered items: status" in js["tables"] and any(
+        r["status"] == "deferred" for r in js["tables"]["Pre-registered items: status"]
+    )
     assert js["metrics"]["events_built"]["single_buy"] > 0
     assert not (tmp_path / "rep" / "event_study").exists()
 
@@ -195,9 +305,27 @@ def test_price_pass_with_provider_errors_is_a_failed_pass(tmp_path, monkeypatch)
             raise pr.ProviderBlocked("429")
 
     monkeypatch.setattr(esr, "parse_provider", lambda spec, mi=0.5: (Blocked(), 0.0, "yahoo_chart"))
-    args = cli.build_parser().parse_args(["event-study", "--dry-run", "--from-year", "2025", "--to-year", "2025", "--yes",
-                                          "--data-dir", str(data), "--rows-cache", str(tmp_path / "rc"), "--tickers-cache", str(ct),
-                                          "--price-cache", str(tmp_path / "px"), "--reports-root", str(tmp_path / "rep")])
+    args = cli.build_parser().parse_args(
+        [
+            "event-study",
+            "--dry-run",
+            "--from-year",
+            "2025",
+            "--to-year",
+            "2025",
+            "--yes",
+            "--data-dir",
+            str(data),
+            "--rows-cache",
+            str(tmp_path / "rc"),
+            "--tickers-cache",
+            str(ct),
+            "--price-cache",
+            str(tmp_path / "px"),
+            "--reports-root",
+            str(tmp_path / "rep"),
+        ]
+    )
     msgs = []
     assert esr.run_study(args, today=date(2025, 10, 15), out=msgs.append) == 3
     assert any("INCOMPLETE" in m for m in msgs) and not (tmp_path / "rep").exists()
@@ -207,13 +335,15 @@ def test_analyze_mechanical_verdicts():
     # synthetic results with a clear positive cluster effect and nothing else
     rng = np.random.default_rng(0)
     cal = pd.bdate_range("2015-01-01", periods=1500)
-    rm = rng.normal(0.0004, 0.01, len(cal)); rm[0] = 0
+    rm = rng.normal(0.0004, 0.01, len(cal))
+    rm[0] = 0
     mk = pd.DataFrame({"date": cal, "adj_close": 100 * np.cumprod(1 + rm)})
     prices, ev = {}, []
     for i in range(60):
-        r = 1.0 * rm + rng.normal(0, 0.012, len(cal)); r[0] = 0
+        r = 1.0 * rm + rng.normal(0, 0.012, len(cal))
+        r[0] = 0
         p0 = int(rng.integers(300, 1300))
-        r[p0:p0 + 20] += 0.01
+        r[p0 : p0 + 20] += 0.01
         prices[f"S{i}"] = pd.DataFrame({"date": cal, "adj_close": 50 * np.cumprod(1 + r)})
         ev.append({"ticker": f"S{i}", "event_day": cal[p0]})
     res = {"cluster_buy": es.run_event_study(pd.DataFrame(ev), prices, mk, n_boot=200)}
@@ -242,8 +372,17 @@ def test_confirmatory_run_refuses_unregistered_range(tmp_path):
 
     pre = tmp_path / "prereg.md"
     pre.write_text("**Pre-registration commit: 0123456789abcdef0123456789abcdef01234567**\n")
-    args = argparse.Namespace(from_year=2020, from_quarter=1, to_year=2021, to_quarter=4, dry_run=False,
-                              max_tickers=None, kinds="single_buy", prices="csvdir:/nonexistent", yes=True)
+    args = argparse.Namespace(
+        from_year=2020,
+        from_quarter=1,
+        to_year=2021,
+        to_quarter=4,
+        dry_run=False,
+        max_tickers=None,
+        kinds="single_buy",
+        prices="csvdir:/nonexistent",
+        yes=True,
+    )
     log: list[str] = []
     assert esr.run_study(args, out=log.append, prereg_path=pre, verify_git=False) == 2
     assert any("pre-registered sample" in m for m in log)
