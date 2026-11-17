@@ -172,3 +172,23 @@ def test_fixture_meta_json_works_as_cache_for_load_filing():
     c = EdgarClient(user_agent="x", cache_dir=FIX, transport=httpx.MockTransport(lambda r: pytest.fail("network")))
     f = ix.load_filing(c, 1068851, acc)
     assert f.accepted_at == datetime(2026, 11, 5, 16, 15, 1) and f.issuer_ticker == "PB"
+
+
+def test_parse_form_idx_wrapped_header_as_served_by_live_daily_index():
+    # Header layout copied from a live form.20261113.idx (the header wraps after "CIK").
+    txt = (
+        "Description:           Daily Index of EDGAR Dissemination Feed by Form Type\n"
+        "Last Data Received:    Nov 13, 2026\n"
+        " \n"
+        "Form Type   Company Name                                                  CIK\n"
+        "      Date Filed  File Name\n" + "-" * 140 + "\n"
+        "1                Ludlow Exchange, LLC (Security Futures Product Exchange)      2165203     20261112    edgar/data/2165203/9999999997-26-001700.txt\n"
+        "4                Acme Widgets Inc                                              1234567     20261113    edgar/data/1234567/0001234567-26-000123.txt\n"
+        "4/A              Jane Q Insider                                                7654321     20261113    edgar/data/7654321/0007654321-26-000045.txt\n"
+    )
+    entries = ix.parse_form_idx(txt)
+    assert [(e.form_type, e.cik, e.accession) for e in entries] == [
+        ("4", "1234567", "0001234567-26-000123"),
+        ("4/A", "7654321", "0007654321-26-000045"),
+    ]
+    assert entries[0].date_filed == date(2026, 11, 13)
