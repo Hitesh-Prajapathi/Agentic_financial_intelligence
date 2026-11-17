@@ -1,0 +1,1271 @@
+{
+  "name": "event_study",
+  "metadata": {
+    "git_sha": "d8d2ac56333e2eeef06f4b5c1726de249b7a8e61",
+    "git_dirty": false,
+    "timestamp_utc": "2026-11-16T03:19:31+00:00",
+    "python": "3.11.14",
+    "prereg_commit": "864a0a23b7ad7857c323180521d11eecd8a35527",
+    "prereg_sha256": "805614dfb01882c8cdf6f6936b26c268e0a2a2a7065490eb194d973030643574",
+    "confirmatory": true,
+    "dataset": "sec_insider_transactions 2016q2..2026q1",
+    "quarter_zip_sha256": {
+      "2016q2": "b99ffbceff8e31d49c6a01bc475ec8c7105c2895632b9eb3d72066db94c252a7",
+      "2016q3": "5a25d3c6cb874875904b2be0059bb4784e4da28b315af30b15568fd250bd0dde",
+      "2016q4": "3fd9daf61e256a9463958dc57f90eb9885c9d9f00e98a2d437346d78991252bd",
+      "2017q1": "e3c135d06aeb13ccb7554e4b89cd4ade40faf9d0d39c8c6a7010b3f3260e5371",
+      "2017q2": "071c75391305e5e5f01db18fd5c954da3800164a15fdad8b1161098fecd63786",
+      "2017q3": "ca64bbc6a5a728c80e9532d91028b5a19bd8f8f8d179344e30e9eb361bb1bd18",
+      "2017q4": "d529e3ebe7d1f4f022580eabb703b25ef66b42199dbb8adfe06e988d99bca06d",
+      "2018q1": "8541f5c8a975ec99bf21964a77593775e02f55200a7fdf4c0711a7c858a9e2fb",
+      "2018q2": "3e0942f34eae067a676b4482e927297216d8adc7449ac27ea8860f643724d05b",
+      "2018q3": "c5c7e1f946b80dd2419356974a717d1e92b875436f7dad4b6b8e2094f867682e",
+      "2018q4": "03dd59b0da4e10e98425a0961d04126707b127b8b8f33e13092b80deed087a9f",
+      "2019q1": "3206a941a818d1210857277b8dff86900df8aa00e10902bfa2fa8879b1011a5d",
+      "2019q2": "0d6d5fb5cc922dee8ca7451156a44ba76c5e1db65b02bb6473fe16354087c308",
+      "2019q3": "d3ae11e56f9ec064e95b074e808bd08c19a7a1320fcfd146708bc80543a963bd",
+      "2019q4": "df28aa75bf703f0c202c59d94046e84e8e082a97a49965a4b66149d3184e540c",
+      "2020q1": "3c3bc3fefa4dbe32cb68f052ac4ea32cae16099bb2b104a0bd8d242465e004a8",
+      "2020q2": "665be773d41b30fae10f4dea03096a0e33a7557b0acbb3fab9f1cd5796ee2b22",
+      "2020q3": "5b89d93d94b70a649355bd47ec5a68a0450e40cc12f082b2817079589aa541b1",
+      "2020q4": "0abb3ec65cb2ef4ef15d0e3f4c7ba782a2801b9998d32b5b36c3f44cc4130af3",
+      "2021q1": "3ea90731d424e9b0324f00a6bab1ad603cc9419d9366025f7d7120fffc2a73c5",
+      "2021q2": "7277d43d94cda0fdb83d7e6f4d9021a3baa2d886a963c0cd97b65e6875aec3b6",
+      "2021q3": "8323d1ceb62ebbdc27da242533501f8abea7ef9703bc374dc28cef7379aa0070",
+      "2021q4": "cd630b3ba9402d578b9ec88d637f022248f1452476de9066b4813823200e3fca",
+      "2022q1": "bc733530b3360ec59b624041043a4b50619feba4cd8a13aea441d171d6d2c2c5",
+      "2022q2": "fc091183d24d25283826e7e11e0318a8027995a9d77ea8bc4667589eb2b4d8f5",
+      "2022q3": "846c1115906b1c45dd8761da076a32ea0cb9f8995dae76f81d0cd93b7e05b032",
+      "2022q4": "6c6a909bd2eaaa0a24ccf5f0071b404670c115845d2939bc592bf3ce420dcdb9",
+      "2023q1": "0b476188f52a0862e71886eb31a81f6345fc6616403b52188484aef0438cfcfb",
+      "2023q2": "7e636787231ae0f00accf5c3627298402dedd1aefffd7c50fb48292e5d3a8fbb",
+      "2023q3": "26947559fbd710ca4fb007e2ff0481b13ebc3ca47153e77a9b0bc84db250a48e",
+      "2023q4": "be19822ad9116ea6c1a55303b1f2e23864f21101e42d2da0455a6ff2b33e1a9e",
+      "2024q1": "8e9bb34335416829a88e4ca7d09bb8aaceca689da9718fef22c298d6f18c9b04",
+      "2024q2": "782abee663e466b243f953625ae319da93c3e896816007d5a375e558c94dc7c1",
+      "2024q3": "8b55b4ffd91e56770fc0e71f9b73e6886f3c60fac8b7266e4b3e5586d2857910",
+      "2024q4": "44763a00aa8a2077747bc015f12c6a4c09ba7cae4a2d031bf24398f9db9e52f3",
+      "2025q1": "37f6b4287df129b88acf0782498540640d055b1c893320877e329945b534a8c2",
+      "2025q2": "64e7f81328933b1281bd8737961048d76d2ab3d5d1d2d7149a32ec061b0e3ff2",
+      "2025q3": "9c57f272b7230500771f661bc1fe181527ed6b76a6f45d23a910c7fc7e9fcfa4",
+      "2025q4": "6af26a68f5834eab96dff2c568530d9213638d3e6c9d1256e4f6c9f8af1d2d28",
+      "2026q1": "3dcb680593f5829bc951cb0969e858b60fc21a6835b094838218093a849592d6"
+    },
+    "price_provider": "yahoo_chart",
+    "kinds": [
+      "cluster_buy",
+      "single_buy",
+      "officer_buy",
+      "large_buy",
+      "discretionary_sell",
+      "planned_sell",
+      "cluster_buy_sens_k3_n60"
+    ],
+    "seed": 0,
+    "n_boot": 2000,
+    "windows": [
+      [
+        0,
+        5
+      ],
+      [
+        0,
+        20
+      ],
+      [
+        0,
+        60
+      ],
+      [
+        -20,
+        -1
+      ]
+    ],
+    "est_window": [
+      -250,
+      -30
+    ],
+    "market_proxy": "SPY",
+    "factors": "Ken French daily FF3",
+    "max_tickers": null,
+    "min_price": 1.0,
+    "dedup_days": 30,
+    "event_timing": "FILING_DATE; day 0 = first trading session strictly after the filing date"
+  },
+  "metrics": {
+    "confirmatory": true,
+    "n_tests_family1": 3,
+    "n_tests_family2": 15,
+    "events_built": {
+      "cluster_buy": 22307,
+      "single_buy": 48585,
+      "officer_buy": 16162,
+      "large_buy": 23320,
+      "discretionary_sell": 21767,
+      "planned_sell": 14209,
+      "cluster_buy_sens_k3_n60": 12236
+    },
+    "s6": {
+      "status": "partial",
+      "note": "abs_net (total_value) on single_buy events only; pct_mcap deferred (needs shares outstanding, plan B2); cluster-score ranking not run.",
+      "abs_net": {
+        "ok": true,
+        "n": 34011,
+        "top_mean": 0.017644969056199302,
+        "bottom_mean": -0.002738303886765741,
+        "spread": 0.020383272942965044,
+        "t": 1.66918350358681,
+        "p": 0.09512750152270462,
+        "spearman": 0.04782182714926707,
+        "spearman_p": 1.1038325660408294e-18
+      }
+    },
+    "price_coverage": {
+      "requested": 7091,
+      "found": 4825,
+      "errors": {},
+      "found_rate": 0.6804399943590467,
+      "provider_requests": 0,
+      "not_attempted": []
+    },
+    "ticker_mapping": {
+      "n_ciks": 8876,
+      "by_source": {
+        "cik_current": 4846,
+        "filing_fallback": 3695,
+        "unmapped": 335
+      },
+      "share_current": 0.5459666516448851,
+      "n_ticker_changed_vs_filing": 593,
+      "note": "'filing_fallback' CIKs are absent from SEC's current ticker list (typically delisted/acquired issuers); their filing ticker may be missing from the price source or reassigned to another company."
+    },
+    "input_funnel": {
+      "rows_ps_form4_and_4a": 1157854,
+      "rows_4A_excluded": 16828,
+      "rows_no_filing_date_dropped": 0,
+      "rows_no_ticker_dropped": 5728,
+      "rows_for_event_building": 1135298,
+      "n_filings": 533567,
+      "sell_rows": 840501,
+      "sell_rows_with_10b5_1_flag": 248420,
+      "sell_rows_10b5_1_unknown_excluded_from_sell_kinds": 592081
+    },
+    "primary": [
+      {
+        "id": "H1",
+        "hypothesis": "cluster buys: BMP t, CAR[0,20] > 0",
+        "kind": "cluster_buy",
+        "n": 14764,
+        "mean_car": 0.020940124592709712,
+        "t_bmp": 12.405744384935021,
+        "p_bmp": 3.642179517171184e-35,
+        "t_cs": 9.242982373593847,
+        "ci_lo": 0.01612106804366093,
+        "ci_hi": 0.02509673636951628,
+        "mean_car_market_adjusted": 0.019777025939901632,
+        "calendar_alpha_annual": 0.0633955002291035,
+        "calendar_alpha_t": 2.6965742561990376,
+        "p": 3.642179517171184e-35,
+        "p_holm": 1.0926538551513551e-34,
+        "verdict": "supported"
+      },
+      {
+        "id": "H2",
+        "hypothesis": "CEO/CFO buys: BMP t, CAR[0,20] > 0",
+        "kind": "officer_buy",
+        "n": 11206,
+        "mean_car": 0.02326409743813951,
+        "t_bmp": 11.53384990987401,
+        "p_bmp": 1.3256116139061098e-30,
+        "t_cs": 8.778380340477206,
+        "ci_lo": 0.018232618587389504,
+        "ci_hi": 0.028449192243186212,
+        "mean_car_market_adjusted": 0.025819649920446375,
+        "calendar_alpha_annual": 0.21987228939964154,
+        "calendar_alpha_t": 1.5343173915730854,
+        "p": 1.3256116139061098e-30,
+        "p_holm": 2.6512232278122197e-30,
+        "verdict": "supported"
+      },
+      {
+        "id": "H3",
+        "hypothesis": "discretionary sells vs planned (10b5-1) sells: Welch t on CAR[0,20]",
+        "kind": "discretionary_sell - planned_sell",
+        "n": "19585 vs 12731",
+        "mean_car": 0.0007445672647145313,
+        "mean_discretionary": -0.013817101055372243,
+        "mean_planned": -0.014561668320086775,
+        "t_welch": 0.4074965787708694,
+        "p": 0.6836464216700827,
+        "p_holm": 0.6836464216700827,
+        "verdict": "not supported"
+      }
+    ]
+  },
+  "tables": {
+    "Primary hypotheses (Holm family 1)": [
+      {
+        "id": "H1",
+        "hypothesis": "cluster buys: BMP t, CAR[0,20] > 0",
+        "kind": "cluster_buy",
+        "n": 14764,
+        "mean_car": 0.020940124592709712,
+        "t_bmp": 12.405744384935021,
+        "p_bmp": 3.642179517171184e-35,
+        "t_cs": 9.242982373593847,
+        "ci_lo": 0.01612106804366093,
+        "ci_hi": 0.02509673636951628,
+        "mean_car_market_adjusted": 0.019777025939901632,
+        "calendar_alpha_annual": 0.0633955002291035,
+        "calendar_alpha_t": 2.6965742561990376,
+        "p": 3.642179517171184e-35,
+        "p_holm": 1.0926538551513551e-34,
+        "verdict": "supported"
+      },
+      {
+        "id": "H2",
+        "hypothesis": "CEO/CFO buys: BMP t, CAR[0,20] > 0",
+        "kind": "officer_buy",
+        "n": 11206,
+        "mean_car": 0.02326409743813951,
+        "t_bmp": 11.53384990987401,
+        "p_bmp": 1.3256116139061098e-30,
+        "t_cs": 8.778380340477206,
+        "ci_lo": 0.018232618587389504,
+        "ci_hi": 0.028449192243186212,
+        "mean_car_market_adjusted": 0.025819649920446375,
+        "calendar_alpha_annual": 0.21987228939964154,
+        "calendar_alpha_t": 1.5343173915730854,
+        "p": 1.3256116139061098e-30,
+        "p_holm": 2.6512232278122197e-30,
+        "verdict": "supported"
+      },
+      {
+        "id": "H3",
+        "hypothesis": "discretionary sells vs planned (10b5-1) sells: Welch t on CAR[0,20]",
+        "kind": "discretionary_sell - planned_sell",
+        "n": "19585 vs 12731",
+        "mean_car": 0.0007445672647145313,
+        "mean_discretionary": -0.013817101055372243,
+        "mean_planned": -0.014561668320086775,
+        "t_welch": 0.4074965787708694,
+        "p": 0.6836464216700827,
+        "p_holm": 0.6836464216700827,
+        "verdict": "not supported"
+      }
+    ],
+    "Pre-registered items: status": [
+      {
+        "item": "H1",
+        "status": "run",
+        "note": ""
+      },
+      {
+        "item": "H2",
+        "status": "run",
+        "note": ""
+      },
+      {
+        "item": "H3",
+        "status": "run",
+        "note": "only quarters with SUBMISSION.AFF10B5ONE populated"
+      },
+      {
+        "item": "S1",
+        "status": "run",
+        "note": "single_buy CAR[0,5],[0,60]"
+      },
+      {
+        "item": "S2",
+        "status": "run",
+        "note": "cluster/officer CAR[0,5],[0,60]"
+      },
+      {
+        "item": "S3",
+        "status": "run",
+        "note": "large_buy CAR[0,20]"
+      },
+      {
+        "item": "S4",
+        "status": "run",
+        "note": "planned and discretionary sells alone"
+      },
+      {
+        "item": "S5",
+        "status": "run",
+        "note": "calendar-time FF3 alpha per kind (needs Ken French factors)"
+      },
+      {
+        "item": "S6",
+        "status": "partial",
+        "note": "abs_net only; pct_mcap deferred until shares-outstanding data (plan B2); cluster ranking not run"
+      },
+      {
+        "item": "S7",
+        "status": "run",
+        "note": "pre-event drift CAR[-20,-1]"
+      },
+      {
+        "item": "S8",
+        "status": "run",
+        "note": "market-adjusted AR"
+      },
+      {
+        "item": "Market-cap-floor ($300M) analysis",
+        "status": "deferred",
+        "note": "no shares-outstanding data until plan B2"
+      },
+      {
+        "item": "Exercise-and-sell events",
+        "status": "deferred",
+        "note": "needs derivative-table parsing (as pre-registered)"
+      },
+      {
+        "item": "Sensitivity k=3, N=60, dedup 60d",
+        "status": "run",
+        "note": "event kind cluster_buy_sens_k3_n60, reported only"
+      }
+    ],
+    "Secondary: market-model CAR by kind and window (BMP p, Holm family 2)": [
+      {
+        "kind": "cluster_buy",
+        "window": "0_5",
+        "n": 14765,
+        "mean_car": 0.017304211468125177,
+        "median_car": 0.006315879287384453,
+        "share_positive": 0.5609888249238063,
+        "t_cs": 15.903305082734004,
+        "p_cs": 1.7689402485016318e-56,
+        "t_bmp": 11.520028192414028,
+        "p_bmp": 1.4131278417441753e-30,
+        "ci_lo": 0.015236099404027731,
+        "ci_hi": 0.019309076239697544,
+        "primary_cell": false,
+        "p_bmp_holm": 1.9783789784418453e-29,
+        "significant_holm": true
+      },
+      {
+        "kind": "cluster_buy",
+        "window": "0_20",
+        "n": 14764,
+        "mean_car": 0.020940124592709712,
+        "median_car": 0.010051577176290714,
+        "share_positive": 0.5499864535356273,
+        "t_cs": 9.242982373593847,
+        "p_cs": 2.719089336666057e-20,
+        "t_bmp": 12.405744384935021,
+        "p_bmp": 3.642179517171184e-35,
+        "ci_lo": 0.01612106804366093,
+        "ci_hi": 0.02509673636951628,
+        "primary_cell": true
+      },
+      {
+        "kind": "cluster_buy",
+        "window": "0_60",
+        "n": 14763,
+        "mean_car": 0.029444942190699954,
+        "median_car": 0.01896645836648658,
+        "share_positive": 0.5485334959019169,
+        "t_cs": 6.766704344720014,
+        "p_cs": 1.3671041543169936e-11,
+        "t_bmp": null,
+        "p_bmp": null,
+        "ci_lo": 0.02061895447087762,
+        "ci_hi": 0.037492396920920316,
+        "primary_cell": false
+      },
+      {
+        "kind": "single_buy",
+        "window": "0_5",
+        "n": 34012,
+        "mean_car": 0.03230663378602306,
+        "median_car": 0.005279572319900647,
+        "share_positive": 0.5570974950017641,
+        "t_cs": 1.7825490292106856,
+        "p_cs": 0.07466866068451185,
+        "t_bmp": 5.3662750054454325,
+        "p_bmp": 8.090451315035273e-08,
+        "ci_lo": 0.012984370859894514,
+        "ci_hi": 0.07002465061302406,
+        "primary_cell": false,
+        "p_bmp_holm": 4.0452256575176367e-07,
+        "significant_holm": true
+      },
+      {
+        "kind": "single_buy",
+        "window": "0_20",
+        "n": 34011,
+        "mean_car": 0.03129824833917237,
+        "median_car": 0.007513885999391883,
+        "share_positive": 0.5413248654846962,
+        "t_cs": 1.718954306483121,
+        "p_cs": 0.08563179230429768,
+        "t_bmp": null,
+        "p_bmp": null,
+        "ci_lo": 0.01024968917038013,
+        "ci_hi": 0.06846386527736092,
+        "primary_cell": false
+      },
+      {
+        "kind": "single_buy",
+        "window": "0_60",
+        "n": 34010,
+        "mean_car": 0.03835289373549823,
+        "median_car": 0.012965373894564022,
+        "share_positive": 0.537400764481035,
+        "t_cs": 1.8861175324472075,
+        "p_cs": 0.05928763136685422,
+        "t_bmp": null,
+        "p_bmp": null,
+        "ci_lo": 0.00849438558790826,
+        "ci_hi": 0.08239476524701513,
+        "primary_cell": false
+      },
+      {
+        "kind": "officer_buy",
+        "window": "0_5",
+        "n": 11206,
+        "mean_car": 0.021400483400673805,
+        "median_car": 0.009220763502505364,
+        "share_positive": 0.5763876494734963,
+        "t_cs": 12.50951700877376,
+        "p_cs": 1.1458554039512644e-35,
+        "t_bmp": 8.99306019027167,
+        "p_bmp": 2.790202560984524e-19,
+        "ci_lo": 0.018495992573540523,
+        "ci_hi": 0.025051938327134194,
+        "primary_cell": false,
+        "p_bmp_holm": 2.2321620487876192e-18,
+        "significant_holm": true
+      },
+      {
+        "kind": "officer_buy",
+        "window": "0_20",
+        "n": 11206,
+        "mean_car": 0.02326409743813951,
+        "median_car": 0.012427927821804501,
+        "share_positive": 0.5563983580224879,
+        "t_cs": 8.778380340477206,
+        "p_cs": 1.898720443384628e-18,
+        "t_bmp": 11.53384990987401,
+        "p_bmp": 1.3256116139061098e-30,
+        "ci_lo": 0.018232618587389504,
+        "ci_hi": 0.028449192243186212,
+        "primary_cell": true
+      },
+      {
+        "kind": "officer_buy",
+        "window": "0_60",
+        "n": 11206,
+        "mean_car": 0.05094170262957963,
+        "median_car": 0.02296413441098693,
+        "share_positive": 0.5528288416919508,
+        "t_cs": 2.1590858278402285,
+        "p_cs": 0.030864665846417158,
+        "t_bmp": 10.557584868908092,
+        "p_bmp": 6.201542328789922e-26,
+        "ci_lo": 0.01988737038897712,
+        "ci_hi": 0.10427477895230423,
+        "primary_cell": false,
+        "p_bmp_holm": 7.441850794547906e-25,
+        "significant_holm": true
+      },
+      {
+        "kind": "large_buy",
+        "window": "0_5",
+        "n": 15642,
+        "mean_car": 0.06134284623782539,
+        "median_car": 0.010232145900914147,
+        "share_positive": 0.5958317350722414,
+        "t_cs": 1.5575765039650216,
+        "p_cs": 0.11935390433466564,
+        "t_bmp": 4.088170196366432,
+        "p_bmp": 4.3696201448457284e-05,
+        "ci_lo": 0.02007207916888887,
+        "ci_hi": 0.14207957027541213,
+        "primary_cell": false,
+        "p_bmp_holm": 8.739240289691457e-05,
+        "significant_holm": true
+      },
+      {
+        "kind": "large_buy",
+        "window": "0_20",
+        "n": 15641,
+        "mean_car": 0.06017378980008857,
+        "median_car": 0.013181786781027903,
+        "share_positive": 0.5658845342369414,
+        "t_cs": 1.525186470645091,
+        "p_cs": 0.12723281419349616,
+        "t_bmp": 5.21144694417873,
+        "p_bmp": 1.8975553346082366e-07,
+        "ci_lo": 0.017226639522887995,
+        "ci_hi": 0.14193408678337474,
+        "primary_cell": false,
+        "p_bmp_holm": 7.590221338432947e-07,
+        "significant_holm": true
+      },
+      {
+        "kind": "large_buy",
+        "window": "0_60",
+        "n": 15640,
+        "mean_car": 0.06383239682488948,
+        "median_car": 0.02206340343519912,
+        "share_positive": 0.5555626598465473,
+        "t_cs": 1.6066562122403723,
+        "p_cs": 0.10814999266140533,
+        "t_bmp": 7.2250010376968214,
+        "p_bmp": 5.242243162906958e-13,
+        "ci_lo": 0.016387744947174585,
+        "ci_hi": 0.1537579630065503,
+        "primary_cell": false,
+        "p_bmp_holm": 3.6695702140348706e-12,
+        "significant_holm": true
+      },
+      {
+        "kind": "discretionary_sell",
+        "window": "0_5",
+        "n": 19586,
+        "mean_car": -0.0052017478055453896,
+        "median_car": -0.0057206905465869585,
+        "share_positive": 0.44184621668538754,
+        "t_cs": -7.876498874557358,
+        "p_cs": 3.541553107575038e-15,
+        "t_bmp": -10.228689393494156,
+        "p_bmp": 1.6998841944906025e-24,
+        "ci_lo": -0.006453320856998086,
+        "ci_hi": -0.003840474939649969,
+        "primary_cell": false,
+        "p_bmp_holm": 1.6998841944906024e-23,
+        "significant_holm": true
+      },
+      {
+        "kind": "discretionary_sell",
+        "window": "0_20",
+        "n": 19585,
+        "mean_car": -0.013817101055372243,
+        "median_car": -0.012354629013565183,
+        "share_positive": 0.4368138881797294,
+        "t_cs": -11.748802573731789,
+        "p_cs": 9.156573682174638e-32,
+        "t_bmp": -10.733153291051925,
+        "p_bmp": 8.444808745401532e-27,
+        "ci_lo": -0.016027236094671264,
+        "ci_hi": -0.011554854206553026,
+        "primary_cell": false,
+        "p_bmp_holm": 1.097825136902199e-25,
+        "significant_holm": true
+      },
+      {
+        "kind": "discretionary_sell",
+        "window": "0_60",
+        "n": 19585,
+        "mean_car": -0.020019162779836154,
+        "median_car": -0.026426904338311803,
+        "share_positive": 0.43129946387541485,
+        "t_cs": -1.3772674163225993,
+        "p_cs": 0.16844532586194533,
+        "t_bmp": -4.27560304726371,
+        "p_bmp": 1.9152267621837714e-05,
+        "ci_lo": -0.03812140360660024,
+        "ci_hi": 0.010184856216516228,
+        "primary_cell": false,
+        "p_bmp_holm": 5.745680286551314e-05,
+        "significant_holm": true
+      },
+      {
+        "kind": "planned_sell",
+        "window": "0_5",
+        "n": 12731,
+        "mean_car": -0.00504243036562003,
+        "median_car": -0.004367523377640431,
+        "share_positive": 0.4601366742596811,
+        "t_cs": -7.122341071498552,
+        "p_cs": 1.1181452598842299e-12,
+        "t_bmp": -6.2153869281109895,
+        "p_bmp": 5.279700235957374e-10,
+        "ci_lo": -0.006394370937601776,
+        "ci_hi": -0.0036613972134134382,
+        "primary_cell": false,
+        "p_bmp_holm": 3.1678201415744247e-09,
+        "significant_holm": true
+      },
+      {
+        "kind": "planned_sell",
+        "window": "0_20",
+        "n": 12731,
+        "mean_car": -0.014561668320086775,
+        "median_car": -0.01267805195422728,
+        "share_positive": 0.4495326368706307,
+        "t_cs": -10.413184680726165,
+        "p_cs": 2.727453504118969e-25,
+        "t_bmp": -10.328424630516842,
+        "p_bmp": 6.573147692382518e-25,
+        "ci_lo": -0.017146314943238036,
+        "ci_hi": -0.011836479277404268,
+        "primary_cell": false,
+        "p_bmp_holm": 7.230462461620769e-24,
+        "significant_holm": true
+      },
+      {
+        "kind": "planned_sell",
+        "window": "0_60",
+        "n": 12730,
+        "mean_car": -0.04394914856394566,
+        "median_car": -0.03545218134848797,
+        "share_positive": 0.4261586802827965,
+        "t_cs": -17.12318011055785,
+        "p_cs": 5.317944081956726e-65,
+        "t_bmp": -16.502658746146942,
+        "p_bmp": 1.4919264326532387e-60,
+        "ci_lo": -0.049158477338436556,
+        "ci_hi": -0.039136355828551704,
+        "primary_cell": false,
+        "p_bmp_holm": 2.237889648979858e-59,
+        "significant_holm": true
+      },
+      {
+        "kind": "cluster_buy_sens_k3_n60",
+        "window": "0_5",
+        "n": 7810,
+        "mean_car": 0.021674416675162903,
+        "median_car": 0.007477874430646651,
+        "share_positive": 0.5672215108834827,
+        "t_cs": 15.559881434047245,
+        "p_cs": 8.705746320918057e-54,
+        "t_bmp": 9.656381103125181,
+        "p_bmp": 6.125621415075643e-22,
+        "ci_lo": 0.018781672947846485,
+        "ci_hi": 0.02439872443222764,
+        "primary_cell": false,
+        "p_bmp_holm": 5.513059273568079e-21,
+        "significant_holm": true
+      },
+      {
+        "kind": "cluster_buy_sens_k3_n60",
+        "window": "0_20",
+        "n": 7809,
+        "mean_car": 0.027009371355135207,
+        "median_car": 0.011408842358122258,
+        "share_positive": 0.5512869765655013,
+        "t_cs": 11.836048381056623,
+        "p_cs": 4.7711033223134624e-32,
+        "t_bmp": 3.379038851327606,
+        "p_bmp": 0.0007309606171262605,
+        "ci_lo": 0.022563419571048696,
+        "ci_hi": 0.03162204688074831,
+        "primary_cell": false,
+        "p_bmp_holm": 0.0007309606171262605,
+        "significant_holm": true
+      },
+      {
+        "kind": "cluster_buy_sens_k3_n60",
+        "window": "0_60",
+        "n": 7808,
+        "mean_car": 0.04039426511696919,
+        "median_car": 0.02348357925984092,
+        "share_positive": 0.5573770491803278,
+        "t_cs": 9.864105938456795,
+        "p_cs": 8.095291936727349e-23,
+        "t_bmp": null,
+        "p_bmp": null,
+        "ci_lo": 0.03228207616300657,
+        "ci_hi": 0.048329326638697774,
+        "primary_cell": false
+      }
+    ],
+    "S5 calendar-time FF3 alpha": [
+      {
+        "kind": "cluster_buy",
+        "alpha_annual": 0.0633955002291035,
+        "alpha_t": 2.6965742561990376,
+        "alpha_p": 0.007005677593950183,
+        "n_days": 2572,
+        "mean_n_stocks": 298.29354587869364
+      },
+      {
+        "kind": "single_buy",
+        "alpha_annual": 0.11398356934432806,
+        "alpha_t": 2.243788022623926,
+        "alpha_p": 0.02484604340875092,
+        "n_days": 2573,
+        "mean_n_stocks": 681.462106490478
+      },
+      {
+        "kind": "officer_buy",
+        "alpha_annual": 0.21987228939964154,
+        "alpha_t": 1.5343173915730854,
+        "alpha_p": 0.12495158921466906,
+        "n_days": 2572,
+        "mean_n_stocks": 235.75699844479004
+      },
+      {
+        "kind": "large_buy",
+        "alpha_annual": 0.05057338673686815,
+        "alpha_t": 2.238467045788815,
+        "alpha_p": 0.025190614097489582,
+        "n_days": 2572,
+        "mean_n_stocks": 336.01049766718506
+      },
+      {
+        "kind": "discretionary_sell",
+        "alpha_annual": 0.06661492751269105,
+        "alpha_t": 0.9529965164761818,
+        "alpha_p": 0.34059183570170204,
+        "n_days": 820,
+        "mean_n_stocks": 1212.3768292682928
+      },
+      {
+        "kind": "planned_sell",
+        "alpha_annual": -0.013429122142295923,
+        "alpha_t": -0.5097475648435087,
+        "alpha_p": 0.6102283251481597,
+        "n_days": 820,
+        "mean_n_stocks": 619.1987804878049
+      },
+      {
+        "kind": "cluster_buy_sens_k3_n60",
+        "alpha_annual": 0.057571876834796074,
+        "alpha_t": 2.1570449147630146,
+        "alpha_p": 0.031002165006399605,
+        "n_days": 2571,
+        "mean_n_stocks": 175.69194865810968
+      }
+    ],
+    "S8 robustness: market-adjusted CAR[0,20]": [
+      {
+        "kind": "cluster_buy",
+        "window": "0_20",
+        "model": "market_adjusted",
+        "n": 14764,
+        "mean_car": 0.019777025939901632,
+        "t_cs": 13.724177851387052,
+        "p_cs": 1.3282850379937721e-42,
+        "ci_lo": 0.01698590454319495,
+        "ci_hi": 0.022587918528965162
+      },
+      {
+        "kind": "single_buy",
+        "window": "0_20",
+        "model": "market_adjusted",
+        "n": 34011,
+        "mean_car": 0.03558811360840002,
+        "t_cs": 1.9622902905027872,
+        "p_cs": 0.04973683825485702,
+        "ci_lo": 0.016061374539225178,
+        "ci_hi": 0.0724544258031426
+      },
+      {
+        "kind": "officer_buy",
+        "window": "0_20",
+        "model": "market_adjusted",
+        "n": 11206,
+        "mean_car": 0.025819649920446375,
+        "t_cs": 11.955021933920284,
+        "p_cs": 9.664338051341438e-33,
+        "ci_lo": 0.021618977944850907,
+        "ci_hi": 0.03044541640723399
+      },
+      {
+        "kind": "large_buy",
+        "window": "0_20",
+        "model": "market_adjusted",
+        "n": 15641,
+        "mean_car": 0.06264702058867634,
+        "t_cs": 1.5899710184007156,
+        "p_cs": 0.11186154983682176,
+        "ci_lo": 0.021262742979626735,
+        "ci_hi": 0.14324763525095935
+      },
+      {
+        "kind": "discretionary_sell",
+        "window": "0_20",
+        "model": "market_adjusted",
+        "n": 19585,
+        "mean_car": -0.005955266833858193,
+        "t_cs": -5.311353884167067,
+        "p_cs": 1.1000187280471753e-07,
+        "ci_lo": -0.008046851209507135,
+        "ci_hi": -0.0038057494622430457
+      },
+      {
+        "kind": "planned_sell",
+        "window": "0_20",
+        "model": "market_adjusted",
+        "n": 12731,
+        "mean_car": -0.003512295592772049,
+        "t_cs": -2.55518612632089,
+        "p_cs": 0.010624625752517046,
+        "ci_lo": -0.006120957561257562,
+        "ci_hi": -0.000834950559374992
+      },
+      {
+        "kind": "cluster_buy_sens_k3_n60",
+        "window": "0_20",
+        "model": "market_adjusted",
+        "n": 7809,
+        "mean_car": 0.022515689226675118,
+        "t_cs": 10.296148940390035,
+        "p_cs": 1.054682607433554e-24,
+        "ci_lo": 0.018239869867926608,
+        "ci_hi": 0.027137715683012986
+      }
+    ],
+    "S7 diagnostic: pre-event drift": [
+      {
+        "kind": "cluster_buy",
+        "window": "m20_m1",
+        "n": 14763,
+        "mean_car": -0.025253379584244853,
+        "t_bmp": -9.045280625103585,
+        "p_bmp": 1.676005910259777e-19,
+        "note": "diagnostic; significant pre-drift = momentum/reversal contamination"
+      },
+      {
+        "kind": "single_buy",
+        "window": "m20_m1",
+        "n": 34010,
+        "mean_car": -0.012404648007012353,
+        "t_bmp": null,
+        "p_bmp": null,
+        "note": "diagnostic; significant pre-drift = momentum/reversal contamination"
+      },
+      {
+        "kind": "officer_buy",
+        "window": "m20_m1",
+        "n": 11206,
+        "mean_car": -0.03793928698431618,
+        "t_bmp": -7.826675165446348,
+        "p_bmp": 5.459965635919838e-15,
+        "note": "diagnostic; significant pre-drift = momentum/reversal contamination"
+      },
+      {
+        "kind": "large_buy",
+        "window": "m20_m1",
+        "n": 15640,
+        "mean_car": -0.02281656365767631,
+        "t_bmp": -14.425660804591475,
+        "p_bmp": 7.134416300700784e-47,
+        "note": "diagnostic; significant pre-drift = momentum/reversal contamination"
+      },
+      {
+        "kind": "discretionary_sell",
+        "window": "m20_m1",
+        "n": 19586,
+        "mean_car": 0.023245969097642143,
+        "t_bmp": 10.287726387749998,
+        "p_bmp": 9.25485457210743e-25,
+        "note": "diagnostic; significant pre-drift = momentum/reversal contamination"
+      },
+      {
+        "kind": "planned_sell",
+        "window": "m20_m1",
+        "n": 12731,
+        "mean_car": 0.016286090090398848,
+        "t_bmp": 12.018434226459972,
+        "p_bmp": 4.2937985875984725e-33,
+        "note": "diagnostic; significant pre-drift = momentum/reversal contamination"
+      },
+      {
+        "kind": "cluster_buy_sens_k3_n60",
+        "window": "m20_m1",
+        "n": 7808,
+        "mean_car": -0.020973649648345187,
+        "t_bmp": -12.128696598445188,
+        "p_bmp": 1.4902099111524344e-33,
+        "note": "diagnostic; significant pre-drift = momentum/reversal contamination"
+      }
+    ],
+    "Coverage and drop reasons by kind": [
+      {
+        "kind": "cluster_buy",
+        "events_built": 22307,
+        "events_ok": 14765,
+        "ok_rate": 0.6618998520643744,
+        "tickers_requested": 4994,
+        "tickers_with_prices": 3412,
+        "drop:no_price_data": 5765,
+        "drop:short_estimation_window": 1777
+      },
+      {
+        "kind": "single_buy",
+        "events_built": 48585,
+        "events_ok": 34012,
+        "ok_rate": 0.7000514562107646,
+        "tickers_requested": 6706,
+        "tickers_with_prices": 4531,
+        "drop:no_price_data": 11645,
+        "drop:short_estimation_window": 2927,
+        "drop:no_valid_window": 1
+      },
+      {
+        "kind": "officer_buy",
+        "events_built": 16162,
+        "events_ok": 11206,
+        "ok_rate": 0.693354782823908,
+        "tickers_requested": 4154,
+        "tickers_with_prices": 2907,
+        "drop:no_price_data": 3803,
+        "drop:short_estimation_window": 1152,
+        "drop:no_valid_window": 1
+      },
+      {
+        "kind": "large_buy",
+        "events_built": 23320,
+        "events_ok": 15642,
+        "ok_rate": 0.6707547169811321,
+        "tickers_requested": 5605,
+        "tickers_with_prices": 3856,
+        "drop:no_price_data": 5776,
+        "drop:short_estimation_window": 1901,
+        "drop:no_valid_window": 1
+      },
+      {
+        "kind": "discretionary_sell",
+        "events_built": 21767,
+        "events_ok": 19586,
+        "ok_rate": 0.8998024532549271,
+        "tickers_requested": 3969,
+        "tickers_with_prices": 3410,
+        "drop:no_price_data": 1929,
+        "drop:short_estimation_window": 252
+      },
+      {
+        "kind": "planned_sell",
+        "events_built": 14209,
+        "events_ok": 12731,
+        "ok_rate": 0.895981420226617,
+        "tickers_requested": 1791,
+        "tickers_with_prices": 1577,
+        "drop:no_price_data": 1332,
+        "drop:short_estimation_window": 146
+      },
+      {
+        "kind": "cluster_buy_sens_k3_n60",
+        "events_built": 12236,
+        "events_ok": 7810,
+        "ok_rate": 0.6382804838182412,
+        "tickers_requested": 3896,
+        "tickers_with_prices": 2661,
+        "drop:short_estimation_window": 1184,
+        "drop:no_price_data": 3242
+      }
+    ],
+    "Price coverage": [
+      {
+        "metric": "requested",
+        "value": 7091
+      },
+      {
+        "metric": "found",
+        "value": 4825
+      },
+      {
+        "metric": "found_rate",
+        "value": 0.6804399943590467
+      },
+      {
+        "metric": "provider_requests",
+        "value": 0
+      },
+      {
+        "metric": "not_attempted",
+        "value": 0
+      }
+    ],
+    "Event-input funnel": [
+      {
+        "step": "rows_ps_form4_and_4a",
+        "rows": 1157854
+      },
+      {
+        "step": "rows_4A_excluded",
+        "rows": 16828
+      },
+      {
+        "step": "rows_no_filing_date_dropped",
+        "rows": 0
+      },
+      {
+        "step": "rows_no_ticker_dropped",
+        "rows": 5728
+      },
+      {
+        "step": "rows_for_event_building",
+        "rows": 1135298
+      },
+      {
+        "step": "n_filings",
+        "rows": 533567
+      },
+      {
+        "step": "sell_rows",
+        "rows": 840501
+      },
+      {
+        "step": "sell_rows_with_10b5_1_flag",
+        "rows": 248420
+      },
+      {
+        "step": "sell_rows_10b5_1_unknown_excluded_from_sell_kinds",
+        "rows": 592081
+      }
+    ],
+    "10b5-1 flag availability (sell rows by filing quarter)": [
+      {
+        "filing_quarter": "2016Q2",
+        "sell_rows": 16813,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2016Q3",
+        "sell_rows": 17646,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2016Q4",
+        "sell_rows": 18801,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2017Q1",
+        "sell_rows": 22118,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2017Q2",
+        "sell_rows": 19479,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2017Q3",
+        "sell_rows": 15890,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2017Q4",
+        "sell_rows": 19165,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2018Q1",
+        "sell_rows": 20771,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2018Q2",
+        "sell_rows": 19944,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2018Q3",
+        "sell_rows": 18724,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2018Q4",
+        "sell_rows": 15033,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2019Q1",
+        "sell_rows": 19220,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2019Q2",
+        "sell_rows": 17514,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2019Q3",
+        "sell_rows": 17442,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2019Q4",
+        "sell_rows": 18832,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2020Q1",
+        "sell_rows": 19052,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2020Q2",
+        "sell_rows": 20964,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2020Q3",
+        "sell_rows": 22578,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2020Q4",
+        "sell_rows": 29212,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2021Q1",
+        "sell_rows": 36500,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2021Q2",
+        "sell_rows": 32951,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2021Q3",
+        "sell_rows": 31427,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2021Q4",
+        "sell_rows": 32055,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2022Q1",
+        "sell_rows": 21957,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2022Q2",
+        "sell_rows": 15980,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2022Q3",
+        "sell_rows": 15858,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2022Q4",
+        "sell_rows": 18100,
+        "with_flag": 0,
+        "flag_share": 0.0
+      },
+      {
+        "filing_quarter": "2023Q1",
+        "sell_rows": 19808,
+        "with_flag": 1753,
+        "flag_share": 0.08849959612277868
+      },
+      {
+        "filing_quarter": "2023Q2",
+        "sell_rows": 15556,
+        "with_flag": 15556,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2023Q3",
+        "sell_rows": 16374,
+        "with_flag": 16374,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2023Q4",
+        "sell_rows": 17754,
+        "with_flag": 17754,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2024Q1",
+        "sell_rows": 26809,
+        "with_flag": 26809,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2024Q2",
+        "sell_rows": 19892,
+        "with_flag": 19892,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2024Q3",
+        "sell_rows": 20802,
+        "with_flag": 20802,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2024Q4",
+        "sell_rows": 24288,
+        "with_flag": 24288,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2025Q1",
+        "sell_rows": 21438,
+        "with_flag": 21438,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2025Q2",
+        "sell_rows": 16963,
+        "with_flag": 16963,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2025Q3",
+        "sell_rows": 21984,
+        "with_flag": 21984,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2025Q4",
+        "sell_rows": 22324,
+        "with_flag": 22324,
+        "flag_share": 1.0
+      },
+      {
+        "filing_quarter": "2026Q1",
+        "sell_rows": 22483,
+        "with_flag": 22483,
+        "flag_share": 1.0
+      }
+    ],
+    "Ticker mapping by source": [
+      {
+        "source": "cik_current",
+        "ciks": 4846
+      },
+      {
+        "source": "filing_fallback",
+        "ciks": 3695
+      },
+      {
+        "source": "unmapped",
+        "ciks": 335
+      }
+    ]
+  },
+  "notes": "CONFIRMATORY run under the pre-registration.\n\nAbnormal returns are NOT tradeable alpha (costs, liquidity, capacity not modelled). This study makes no claim of detecting illegal trading: Form 4 trades are legally reported transactions.\n\nHistorical timing: the official datasets have no EDGAR acceptance time, so FILING_DATE is the information date and day 0 is the first trading session STRICTLY AFTER the filing date (conservative vs the live pipeline's acceptance time; the first-day reaction to pre-close filings is excluded). Same-day filings of one issuer form one event.\n\n10b5-1 status comes from SUBMISSION.AFF10B5ONE only; sells from quarters without that column are excluded from BOTH sell kinds (H3 therefore covers only later quarters). Form 4/A is excluded. Prices are Yahoo adjusted closes (survivorship bias: delisted names are often missing, which flatters buy results). The market-cap-floor analysis is deferred until shares-outstanding data exist (plan B2).\n\nS6: abs_net (total_value) on single_buy events only; pct_mcap deferred (needs shares outstanding, plan B2); cluster-score ranking not run.\n\nTickers without price data (2266), first 100: (LUMO), (NYSE:FBC), --, 1314152, AAC, AAM, AAMC, AAN, AAPC, AAWW, ABCD, ABCO, ABDC, ABE, ABST, ABTX, ACBA, ACBI, ACC, ACCA, ACCD, ACER, ACHI, ACHN, ACKIU, ACLX, ACOR, ACRG.A.U, ACTA, ACW, ACY, ADER, ADMP, ADMS, ADOC, ADRO, ADRT, ADSW, ADTX, ADVM, ADXS, AE, AEGN, AEGR, AERI, AEY, AFBI, AFH, AFI, AFIN, AFSI, AFT, AGC, AGCB, AGCUU, AGFS, AGII, AGN, AGR, AGRX, AGS, AGTC, AGTI, AHC, AIF, AIMC, AIMT, AINC, AIRC, AIRM, AJSB, AKAO, AKCA, AKICU, AKLI, AKP, AKRO, AKRX, AKS, AKU, AKUS, AKYA, AL, ALBO, ALCE, ALDR, ALEX, ALIM, ALJ, ALJJ, ALLK, ALNA, ALOR, ALOT, ALPN, ALSK, ALTIX, ALTM, ALTR, ALXN"
+}

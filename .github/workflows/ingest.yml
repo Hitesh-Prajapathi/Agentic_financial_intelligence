@@ -4,10 +4,6 @@
 # Flow: restore the previous DB snapshot -> run the pipeline (ingest from watermark, rank, gate, publish)
 #       -> export derived tables to Parquet -> publish DB + Parquet as a new GitHub Release.
 #
-# PENDING IMPLEMENTATION: `python -m insider_intel publish-snapshot --out snapshot/` does not exist yet
-# (planned in B4/P2: DuckDB `COPY ... TO` Parquet for derived tables). The step below assumes it will.
-# The pipeline also assumes the `run` command uses the EDGAR-native ingestion (in progress).
-#
 # GOTCHA: GitHub automatically disables scheduled workflows after 60 days without repository activity.
 # freshness.yml alerts on stale data; re-enable from the Actions tab or push a commit. The manual
 # "Run workflow" button (workflow_dispatch) always works.

@@ -72,12 +72,19 @@ def parse_form_idx(text: str, forms: tuple[str, ...] = FORM4_FORMS) -> list[Inde
     lines = text.splitlines()
     cols = None
     start = 0
+    header = False
     for i, ln in enumerate(lines):
         if ln.startswith("Form Type") and "Company Name" in ln and "CIK" in ln:
-            cols = (ln.index("Company Name"), ln.index("CIK"), ln.index("Date Filed"), ln.index("File Name"))
+            header = True
             start = i + 1
+            if "Date Filed" in ln and "File Name" in ln:
+                cols = (ln.index("Company Name"), ln.index("CIK"), ln.index("Date Filed"), ln.index("File Name"))
+            elif start < len(lines) and "Date Filed" in lines[start]:
+                # Live daily indexes wrap the header ("...CIK" / "Date Filed  File Name"); column
+                # offsets are then unreliable, so every row goes through the right-anchored regex.
+                start += 1
             break
-    if cols is None:
+    if not header:
         raise ValueError("form.idx header line ('Form Type  Company Name  CIK  Date Filed  File Name') not found")
     if start < len(lines) and set(lines[start].strip()) == {"-"}:
         start += 1
@@ -87,12 +94,14 @@ def parse_form_idx(text: str, forms: tuple[str, ...] = FORM4_FORMS) -> list[Inde
     for ln in lines[start:]:
         if not ln.strip():
             continue
-        c_company, c_cik, c_date, c_path = cols
-        form = ln[:c_company].strip()
-        company = ln[c_company:c_cik].strip()
-        cik = ln[c_cik:c_date].strip()
-        filed = ln[c_date:c_path].strip()
-        path = ln[c_path:].strip()
+        form = company = cik = filed = path = ""
+        if cols is not None:
+            c_company, c_cik, c_date, c_path = cols
+            form = ln[:c_company].strip()
+            company = ln[c_company:c_cik].strip()
+            cik = ln[c_cik:c_date].strip()
+            filed = ln[c_date:c_path].strip()
+            path = ln[c_path:].strip()
         if not (cik.isdigit() and re.fullmatch(r"\d{8}|\d{4}-\d{2}-\d{2}", filed)):
             m = _ROW_RE.match(ln)  # column drift: fall back to a right-anchored regex
             if not m:

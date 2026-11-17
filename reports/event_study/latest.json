@@ -1,9 +1,9 @@
 {
   "name": "event_study",
   "metadata": {
-    "git_sha": "a17da5dd16b21b424792e9468ded2548a6683c5a",
+    "git_sha": "d8d2ac56333e2eeef06f4b5c1726de249b7a8e61",
     "git_dirty": false,
-    "timestamp_utc": "2026-11-15T09:25:49+00:00",
+    "timestamp_utc": "2026-11-16T03:19:31+00:00",
     "python": "3.11.14",
     "prereg_commit": "864a0a23b7ad7857c323180521d11eecd8a35527",
     "prereg_sha256": "805614dfb01882c8cdf6f6936b26c268e0a2a2a7065490eb194d973030643574",
@@ -86,7 +86,7 @@
       -30
     ],
     "market_proxy": "SPY",
-    "factors": null,
+    "factors": "Ken French daily FF3",
     "max_tickers": null,
     "min_price": 1.0,
     "dedup_days": 30,
@@ -163,8 +163,8 @@
         "ci_lo": 0.01612106804366093,
         "ci_hi": 0.02509673636951628,
         "mean_car_market_adjusted": 0.019777025939901632,
-        "calendar_alpha_annual": null,
-        "calendar_alpha_t": null,
+        "calendar_alpha_annual": 0.0633955002291035,
+        "calendar_alpha_t": 2.6965742561990376,
         "p": 3.642179517171184e-35,
         "p_holm": 1.0926538551513551e-34,
         "verdict": "supported"
@@ -181,8 +181,8 @@
         "ci_lo": 0.018232618587389504,
         "ci_hi": 0.028449192243186212,
         "mean_car_market_adjusted": 0.025819649920446375,
-        "calendar_alpha_annual": null,
-        "calendar_alpha_t": null,
+        "calendar_alpha_annual": 0.21987228939964154,
+        "calendar_alpha_t": 1.5343173915730854,
         "p": 1.3256116139061098e-30,
         "p_holm": 2.6512232278122197e-30,
         "verdict": "supported"
@@ -216,8 +216,8 @@
         "ci_lo": 0.01612106804366093,
         "ci_hi": 0.02509673636951628,
         "mean_car_market_adjusted": 0.019777025939901632,
-        "calendar_alpha_annual": null,
-        "calendar_alpha_t": null,
+        "calendar_alpha_annual": 0.0633955002291035,
+        "calendar_alpha_t": 2.6965742561990376,
         "p": 3.642179517171184e-35,
         "p_holm": 1.0926538551513551e-34,
         "verdict": "supported"
@@ -234,8 +234,8 @@
         "ci_lo": 0.018232618587389504,
         "ci_hi": 0.028449192243186212,
         "mean_car_market_adjusted": 0.025819649920446375,
-        "calendar_alpha_annual": null,
-        "calendar_alpha_t": null,
+        "calendar_alpha_annual": 0.21987228939964154,
+        "calendar_alpha_t": 1.5343173915730854,
         "p": 1.3256116139061098e-30,
         "p_holm": 2.6512232278122197e-30,
         "verdict": "supported"
@@ -673,7 +673,64 @@
         "primary_cell": false
       }
     ],
-    "S5 calendar-time FF3 alpha": [],
+    "S5 calendar-time FF3 alpha": [
+      {
+        "kind": "cluster_buy",
+        "alpha_annual": 0.0633955002291035,
+        "alpha_t": 2.6965742561990376,
+        "alpha_p": 0.007005677593950183,
+        "n_days": 2572,
+        "mean_n_stocks": 298.29354587869364
+      },
+      {
+        "kind": "single_buy",
+        "alpha_annual": 0.11398356934432806,
+        "alpha_t": 2.243788022623926,
+        "alpha_p": 0.02484604340875092,
+        "n_days": 2573,
+        "mean_n_stocks": 681.462106490478
+      },
+      {
+        "kind": "officer_buy",
+        "alpha_annual": 0.21987228939964154,
+        "alpha_t": 1.5343173915730854,
+        "alpha_p": 0.12495158921466906,
+        "n_days": 2572,
+        "mean_n_stocks": 235.75699844479004
+      },
+      {
+        "kind": "large_buy",
+        "alpha_annual": 0.05057338673686815,
+        "alpha_t": 2.238467045788815,
+        "alpha_p": 0.025190614097489582,
+        "n_days": 2572,
+        "mean_n_stocks": 336.01049766718506
+      },
+      {
+        "kind": "discretionary_sell",
+        "alpha_annual": 0.06661492751269105,
+        "alpha_t": 0.9529965164761818,
+        "alpha_p": 0.34059183570170204,
+        "n_days": 820,
+        "mean_n_stocks": 1212.3768292682928
+      },
+      {
+        "kind": "planned_sell",
+        "alpha_annual": -0.013429122142295923,
+        "alpha_t": -0.5097475648435087,
+        "alpha_p": 0.6102283251481597,
+        "n_days": 820,
+        "mean_n_stocks": 619.1987804878049
+      },
+      {
+        "kind": "cluster_buy_sens_k3_n60",
+        "alpha_annual": 0.057571876834796074,
+        "alpha_t": 2.1570449147630146,
+        "alpha_p": 0.031002165006399605,
+        "n_days": 2571,
+        "mean_n_stocks": 175.69194865810968
+      }
+    ],
     "S8 robustness: market-adjusted CAR[0,20]": [
       {
         "kind": "cluster_buy",
@@ -1210,5 +1267,5 @@
       }
     ]
   },
-  "notes": "CONFIRMATORY run under the pre-registration.\n\nAbnormal returns are NOT tradeable alpha (costs, liquidity, capacity not modelled). This study makes no claim of detecting illegal trading: Form 4 trades are legally reported transactions.\n\nHistorical timing: the official datasets have no EDGAR acceptance time, so FILING_DATE is the information date and day 0 is the first trading session STRICTLY AFTER the filing date (conservative vs the live pipeline's acceptance time; the first-day reaction to pre-close filings is excluded). Same-day filings of one issuer form one event.\n\n10b5-1 status comes from SUBMISSION.AFF10B5ONE only; sells from quarters without that column are excluded from BOTH sell kinds (H3 therefore covers only later quarters). Form 4/A is excluded. Prices are Yahoo adjusted closes (survivorship bias: delisted names are often missing, which flatters buy results). The market-cap-floor analysis is deferred until shares-outstanding data exist (plan B2).\n\nFama-French factors unavailable (ProviderError); calendar-time alpha skipped\n\nS6: abs_net (total_value) on single_buy events only; pct_mcap deferred (needs shares outstanding, plan B2); cluster-score ranking not run.\n\nTickers without price data (2266), first 100: (LUMO), (NYSE:FBC), --, 1314152, AAC, AAM, AAMC, AAN, AAPC, AAWW, ABCD, ABCO, ABDC, ABE, ABST, ABTX, ACBA, ACBI, ACC, ACCA, ACCD, ACER, ACHI, ACHN, ACKIU, ACLX, ACOR, ACRG.A.U, ACTA, ACW, ACY, ADER, ADMP, ADMS, ADOC, ADRO, ADRT, ADSW, ADTX, ADVM, ADXS, AE, AEGN, AEGR, AERI, AEY, AFBI, AFH, AFI, AFIN, AFSI, AFT, AGC, AGCB, AGCUU, AGFS, AGII, AGN, AGR, AGRX, AGS, AGTC, AGTI, AHC, AIF, AIMC, AIMT, AINC, AIRC, AIRM, AJSB, AKAO, AKCA, AKICU, AKLI, AKP, AKRO, AKRX, AKS, AKU, AKUS, AKYA, AL, ALBO, ALCE, ALDR, ALEX, ALIM, ALJ, ALJJ, ALLK, ALNA, ALOR, ALOT, ALPN, ALSK, ALTIX, ALTM, ALTR, ALXN"
+  "notes": "CONFIRMATORY run under the pre-registration.\n\nAbnormal returns are NOT tradeable alpha (costs, liquidity, capacity not modelled). This study makes no claim of detecting illegal trading: Form 4 trades are legally reported transactions.\n\nHistorical timing: the official datasets have no EDGAR acceptance time, so FILING_DATE is the information date and day 0 is the first trading session STRICTLY AFTER the filing date (conservative vs the live pipeline's acceptance time; the first-day reaction to pre-close filings is excluded). Same-day filings of one issuer form one event.\n\n10b5-1 status comes from SUBMISSION.AFF10B5ONE only; sells from quarters without that column are excluded from BOTH sell kinds (H3 therefore covers only later quarters). Form 4/A is excluded. Prices are Yahoo adjusted closes (survivorship bias: delisted names are often missing, which flatters buy results). The market-cap-floor analysis is deferred until shares-outstanding data exist (plan B2).\n\nS6: abs_net (total_value) on single_buy events only; pct_mcap deferred (needs shares outstanding, plan B2); cluster-score ranking not run.\n\nTickers without price data (2266), first 100: (LUMO), (NYSE:FBC), --, 1314152, AAC, AAM, AAMC, AAN, AAPC, AAWW, ABCD, ABCO, ABDC, ABE, ABST, ABTX, ACBA, ACBI, ACC, ACCA, ACCD, ACER, ACHI, ACHN, ACKIU, ACLX, ACOR, ACRG.A.U, ACTA, ACW, ACY, ADER, ADMP, ADMS, ADOC, ADRO, ADRT, ADSW, ADTX, ADVM, ADXS, AE, AEGN, AEGR, AERI, AEY, AFBI, AFH, AFI, AFIN, AFSI, AFT, AGC, AGCB, AGCUU, AGFS, AGII, AGN, AGR, AGRX, AGS, AGTC, AGTI, AHC, AIF, AIMC, AIMT, AINC, AIRC, AIRM, AJSB, AKAO, AKCA, AKICU, AKLI, AKP, AKRO, AKRX, AKS, AKU, AKUS, AKYA, AL, ALBO, ALCE, ALDR, ALEX, ALIM, ALJ, ALJJ, ALLK, ALNA, ALOR, ALOT, ALPN, ALSK, ALTIX, ALTM, ALTR, ALXN"
 }
