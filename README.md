@@ -45,8 +45,10 @@ Market-adjusted returns give the same signs (+1.98%, +2.58%). What limits these 
 * **Pre-event drift.** Prices fall before insider buys (CAR[-20,-1] −2.5% for cluster buys, −3.8% for CEO/CFO buys,
   both significant). Insiders tend to buy after declines, so part of the post-filing return may be a rebound rather
   than information.
-* **Calendar-time Fama-French alpha (S5) is missing** for this run: the Ken French factor download failed, so the
-  check for events clustering in the same weeks was not done.
+* **Calendar-time check (Fama-French 3-factor alpha).** A daily portfolio of stocks after each event type, which
+  guards against events bunching in the same weeks: cluster buys +6.3%/year (t = 2.70, p = 0.007, unadjusted), so H1
+  holds up; CEO/CFO buys +22%/year but not significant (t = 1.53, p = 0.13), so H2's support rests on the event-time
+  tests; sells show no significant alpha.
 * **Survivorship.** Only 68% of tickers had prices (Yahoo has no data for many delisted companies); 30–34% of buy
   events were dropped, every reason counted in the report.
 * **H3 covers mid-2023 onward only**, because the SEC's 10b5-1 checkbox exists only from 2023 Q2.

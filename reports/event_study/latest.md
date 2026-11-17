@@ -2,9 +2,9 @@
 
 ## Metadata
 
-- **git_sha**: `a17da5dd16b21b424792e9468ded2548a6683c5a`
+- **git_sha**: `d8d2ac56333e2eeef06f4b5c1726de249b7a8e61`
 - **git_dirty**: `False`
-- **timestamp_utc**: `2026-11-15T09:25:49+00:00`
+- **timestamp_utc**: `2026-11-16T03:19:31+00:00`
 - **python**: `3.11.14`
 - **prereg_commit**: `864a0a23b7ad7857c323180521d11eecd8a35527`
 - **prereg_sha256**: `805614dfb01882c8cdf6f6936b26c268e0a2a2a7065490eb194d973030643574`
@@ -18,7 +18,7 @@
 - **windows**: `[[0,5],[0,20],[0,60],[-20,-1]]`
 - **est_window**: `[-250,-30]`
 - **market_proxy**: `SPY`
-- **factors**: `None`
+- **factors**: `Ken French daily FF3`
 - **max_tickers**: `None`
 - **min_price**: `1.0`
 - **dedup_days**: `30`
@@ -36,8 +36,8 @@
 
 | id | hypothesis | kind | n | mean_car | t_bmp | p_bmp | t_cs | ci_lo | ci_hi | mean_car_market_adjusted | calendar_alpha_annual | calendar_alpha_t | p | p_holm | verdict | mean_discretionary | mean_planned | t_welch |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| H1 | cluster buys: BMP t, CAR[0,20] > 0 | cluster_buy | 14764 | 0.0209 | 12.4057 | 0.0000 | 9.2430 | 0.0161 | 0.0251 | 0.0198 |  |  | 0.0000 | 0.0000 | supported |  |  |  |
-| H2 | CEO/CFO buys: BMP t, CAR[0,20] > 0 | officer_buy | 11206 | 0.0233 | 11.5338 | 0.0000 | 8.7784 | 0.0182 | 0.0284 | 0.0258 |  |  | 0.0000 | 0.0000 | supported |  |  |  |
+| H1 | cluster buys: BMP t, CAR[0,20] > 0 | cluster_buy | 14764 | 0.0209 | 12.4057 | 0.0000 | 9.2430 | 0.0161 | 0.0251 | 0.0198 | 0.0634 | 2.6966 | 0.0000 | 0.0000 | supported |  |  |  |
+| H2 | CEO/CFO buys: BMP t, CAR[0,20] > 0 | officer_buy | 11206 | 0.0233 | 11.5338 | 0.0000 | 8.7784 | 0.0182 | 0.0284 | 0.0258 | 0.2199 | 1.5343 | 0.0000 | 0.0000 | supported |  |  |  |
 | H3 | discretionary sells vs planned (10b5-1) sells: Welch t on CAR[0,20] | discretionary_sell - planned_sell | 19585 vs 12731 | 0.0007 |  |  |  |  |  |  |  |  | 0.6836 | 0.6836 | not supported | -0.0138 | -0.0146 | 0.4075 |
 
 ## Pre-registered items: status
@@ -87,7 +87,15 @@
 
 ## S5 calendar-time FF3 alpha
 
-_(empty)_
+| kind | alpha_annual | alpha_t | alpha_p | n_days | mean_n_stocks |
+|---|---|---|---|---|---|
+| cluster_buy | 0.0634 | 2.6966 | 0.0070 | 2572 | 298.2935 |
+| single_buy | 0.1140 | 2.2438 | 0.0248 | 2573 | 681.4621 |
+| officer_buy | 0.2199 | 1.5343 | 0.1250 | 2572 | 235.7570 |
+| large_buy | 0.0506 | 2.2385 | 0.0252 | 2572 | 336.0105 |
+| discretionary_sell | 0.0666 | 0.9530 | 0.3406 | 820 | 1212.3768 |
+| planned_sell | -0.0134 | -0.5097 | 0.6102 | 820 | 619.1988 |
+| cluster_buy_sens_k3_n60 | 0.0576 | 2.1570 | 0.0310 | 2571 | 175.6919 |
 
 ## S8 robustness: market-adjusted CAR[0,20]
 
@@ -211,8 +219,6 @@ Abnormal returns are NOT tradeable alpha (costs, liquidity, capacity not modelle
 Historical timing: the official datasets have no EDGAR acceptance time, so FILING_DATE is the information date and day 0 is the first trading session STRICTLY AFTER the filing date (conservative vs the live pipeline's acceptance time; the first-day reaction to pre-close filings is excluded). Same-day filings of one issuer form one event.
 
 10b5-1 status comes from SUBMISSION.AFF10B5ONE only; sells from quarters without that column are excluded from BOTH sell kinds (H3 therefore covers only later quarters). Form 4/A is excluded. Prices are Yahoo adjusted closes (survivorship bias: delisted names are often missing, which flatters buy results). The market-cap-floor analysis is deferred until shares-outstanding data exist (plan B2).
-
-Fama-French factors unavailable (ProviderError); calendar-time alpha skipped
 
 S6: abs_net (total_value) on single_buy events only; pct_mcap deferred (needs shares outstanding, plan B2); cluster-score ranking not run.
 
